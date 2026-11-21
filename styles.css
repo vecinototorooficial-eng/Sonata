@@ -129,3 +129,60 @@ html[data-skin] .practice-keyboard .white-key.guide-target{background:linear-gra
 .ghost-finger.active{background:linear-gradient(#fff0cc,#ffc66a);border:2px solid #e88e2c;box-shadow:0 0 0 5px #ffc56a44,0 4px 12px #d9833144;color:#8f4f0b}
 .ghost-finger i{font-style:normal}
 @media(orientation:landscape) and (max-height:640px){.ghost-finger{height:26px;width:20px;font-size:10px}}
+
+/* V10 - manos completas dibujadas sobre las teclas y medallas por logros */
+.practice-keyboard{isolation:isolate}
+.practice-keyboard .keyboard-hand-overlay{z-index:4;position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:0 0 8px 8px}
+.real-hand-svg{width:100%;height:100%;display:block;opacity:.77;overflow:visible;filter:drop-shadow(0 3px 2px rgba(98,54,37,.20))}
+.hand-silhouette{transform-origin:center bottom}
+.practice-keyboard .guide-target .finger-marker{z-index:6;top:78%;background:#ff9c2f;box-shadow:0 2px 8px #b9642860}
+.achievement-intro{font-size:12px;color:#8297a6;margin:4px 0 13px}
+.achievement-summary{border-radius:13px;background:#fff6e0;border:1px solid #f4e1ae;color:#92701f;font-size:12px;font-weight:800;padding:12px 14px;margin:14px 0}
+.achievement-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.achievement-card{border:1px solid #dce8ef;border-radius:17px;background:linear-gradient(#fffefa,#fff);padding:14px;text-align:center;display:flex;flex-direction:column;gap:7px;align-items:center}
+.achievement-card.earned{border-color:#efdcaa;background:linear-gradient(160deg,#fff8e3,#fff)}
+.achievement-card.unearned{background:#f6f9fb;opacity:.72}
+.achievement-icon{display:grid;place-items:center;width:57px;height:57px;border-radius:50%;font-size:32px;background:#eaf0f5;border:3px solid #fff;box-shadow:0 2px 7px #28455a13}
+.achievement-card.earned .achievement-icon{background:#ffe9b1;box-shadow:0 0 0 2px #edc967,0 4px 14px #c49a3735}
+.achievement-card b{font-size:12px;line-height:1.2}
+.achievement-card p{font-size:10px;color:#7d91a1;line-height:1.35;margin:0;flex:1}
+.achievement-card .btn{font-size:9px;padding:9px 7px;width:100%;box-shadow:none}
+.top-avatar{position:relative;display:grid;place-items:center}
+.avatar-badge{position:absolute;bottom:-7px;right:-9px;font-size:14px;background:#fff;border-radius:50%;width:21px;height:21px;display:grid;place-items:center;box-shadow:0 2px 4px #24455635}
+.skin-preview.ocean{background:#c9edff}.skin-preview.ocean span{background:#e6f8ff;border-color:#69a5d9}.skin-preview.ocean i{background:#175a7d}
+.skin-preview.rainbow{background:linear-gradient(120deg,#ffe8ee,#e6f4ff,#f2e6ff)}.skin-preview.rainbow span:nth-of-type(1){background:#ffbec1}.skin-preview.rainbow span:nth-of-type(2){background:#ffdc97}.skin-preview.rainbow span:nth-of-type(3){background:#c1eabc}.skin-preview.rainbow span:nth-of-type(4){background:#bfe2ff}.skin-preview.rainbow span:nth-of-type(5){background:#e7c5ff}
+html[data-skin="ocean"] .practice-keyboard .white-key{background:linear-gradient(#fff,#d7f0ff);border-color:#70badb}
+html[data-skin="ocean"] .practice-keyboard .black-key{background:linear-gradient(#21749b,#123d5e)}
+html[data-skin="rainbow"] .practice-keyboard .white-key:nth-child(5n+1){background:linear-gradient(#fff,#ffdce7)}
+html[data-skin="rainbow"] .practice-keyboard .white-key:nth-child(5n+2){background:linear-gradient(#fff,#fff0bc)}
+html[data-skin="rainbow"] .practice-keyboard .white-key:nth-child(5n+3){background:linear-gradient(#fff,#d7f5d7)}
+html[data-skin="rainbow"] .practice-keyboard .white-key:nth-child(5n+4){background:linear-gradient(#fff,#d3e7ff)}
+html[data-skin="rainbow"] .practice-keyboard .white-key:nth-child(5n+5){background:linear-gradient(#fff,#e9d8ff)}
+@media(max-width:720px){.achievement-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}}
+@media(orientation:landscape) and (max-height:640px){.real-hand-svg{opacity:.77}.practice-keyboard .finger-marker{top:73%}}
+@media(prefers-reduced-motion:reduce){.real-hand-svg animate{display:none}}
+
+.photographic-hand{position:absolute;bottom:-53%;width:75%;height:183%;opacity:.36;object-fit:fill;max-width:none;pointer-events:none;user-select:none;filter:saturate(.7) drop-shadow(0 3px 4px #754d3b35);transform:translateX(-50%)}
+.photographic-hand.hand-image-left{transform:translateX(-50%) scaleX(-1)}
+.real-hand-svg{opacity:.8}
+@media(orientation:landscape) and (max-height:640px){.photographic-hand{bottom:-48%;height:171%;opacity:.4}}
+
+/* V12 — misiones diarias y semanales */
+.mission-home-card{display:flex;align-items:center;gap:14px;border:1px solid #dceaf4;background:linear-gradient(110deg,#ecf8ff,#fff);border-radius:17px;padding:16px;margin-bottom:8px}
+.mission-home-icon{font-size:34px}.mission-home-card div{flex:1}.mission-home-card b{font-size:14px}.mission-home-card p{font-size:11px;color:#8297a6;line-height:1.5;margin:4px 0 0}
+.mission-banner{display:flex;justify-content:space-between;gap:15px;align-items:center;border:1px solid #e4eaf1;border-radius:18px;background:linear-gradient(110deg,#eaf7ff,#f7fcff);padding:21px;margin-bottom:19px}
+.mission-banner h2{font-size:20px;margin:7px 0;color:#2b506d}.mission-banner p{font-size:12px;color:#69849a;line-height:1.5;margin:0}
+.mission-flame{background:#fff;border-radius:16px;padding:10px 18px;font-size:28px;text-align:center;min-width:88px}.mission-flame b{display:block;color:#d88939;font-size:25px}.mission-flame small{display:block;font-size:10px;color:#8297a6}
+.mission-ready-notice{border-radius:12px;background:#e6f8f1;color:#278869;border:1px solid #a3deca;padding:12px;font-size:12px;font-weight:800;margin:13px 0}
+.mission-section-title{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin:24px 0 11px}.mission-section-title h2{font-size:17px;margin:0}.mission-section-title small{font-size:10px;color:#8b9ead}
+.mission-list{display:grid;gap:10px}.mission-card{display:flex;gap:13px;align-items:center;border:1px solid #e3edf3;border-radius:14px;padding:14px;background:#fff}.mission-card.mission-ready{border-color:#b6e5d0;background:#fbfffd}
+.mission-symbol{font-size:28px;width:48px;flex:none;text-align:center}.mission-body{flex:1;min-width:0}.mission-body h3{font-size:13px;margin:0 0 4px}.mission-body p{font-size:11px;color:#8095a5;line-height:1.35;margin:0 0 9px}.mission-body small{font-size:10px;color:#829aaa}
+.mission-progress{height:7px;border-radius:20px;background:#e8f1f6;overflow:hidden;margin-bottom:5px}.mission-progress span{display:block;background:#51c5aa;height:100%;border-radius:20px}
+.mission-prize{display:flex;align-items:center;flex-direction:column;gap:8px;min-width:99px}.mission-prize b{font-size:13px;color:#ae832f}.mission-prize .btn{font-size:10px;padding:10px 8px;width:100%;box-shadow:none}
+.mission-help{font-size:11px;color:#6b8b9e;line-height:1.55;background:#f1f8fc;padding:14px;border-radius:12px;margin:20px 0}
+@media(max-width:600px){.mission-home-card{gap:9px;padding:12px}.mission-home-card .btn{padding:10px 8px;font-size:10px}.mission-home-icon{font-size:25px}.mission-card{gap:8px;padding:11px}.mission-symbol{font-size:22px;width:33px}.mission-prize{min-width:88px}.mission-section-title{flex-direction:column;gap:4px}}
+
+/* V13 bilingual language toggle: always accessible, also on narrow screens. */
+.language-toggle{border:1px solid #cce4f6;background:#eef8ff;color:#176fae;font-size:12px;font-weight:800;padding:8px 10px;border-radius:18px;min-width:91px;white-space:nowrap;cursor:pointer;touch-action:manipulation}
+.language-toggle:focus-visible{outline:3px solid #f4ad43;outline-offset:2px}
+@media(max-width:390px){.language-toggle{font-size:11px;min-width:84px;padding:7px}.top-right{gap:7px}}

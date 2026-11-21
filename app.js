@@ -45,18 +45,39 @@
   ];
   const SKINS = [
     {id:'classic',name:'Clásico',emoji:'🎹',price:0,desc:'El aspecto original de Sonata.',color:'#1686d9'},
-    {id:'mint',name:'Menta',emoji:'🍃',price:15,desc:'Teclas suaves en verde agua.',color:'#3bbca5'},
-    {id:'sunset',name:'Atardecer',emoji:'🌇',price:45,desc:'Un piano cálido coral y melocotón.',color:'#eb8c76'},
-    {id:'night',name:'Noche',emoji:'🌙',price:90,desc:'Teclado oscuro con detalles azules.',color:'#394b79'},
-    {id:'galaxy',name:'Galaxia',emoji:'🌌',price:150,desc:'Violetas y estrellas para tu piano.',color:'#926ad3'},
-    {id:'gold',name:'Dorado',emoji:'👑',price:220,desc:'El teclado más brillante de Sonata.',color:'#c59a35'}
+    {id:'mint',name:'Menta',emoji:'🍃',price:250,days:3,desc:'Teclas suaves en verde agua.',color:'#3bbca5'},
+    {id:'sunset',name:'Atardecer',emoji:'🌇',price:450,days:5,desc:'Un piano cálido coral y melocotón.',color:'#eb8c76'},
+    {id:'night',name:'Noche',emoji:'🌙',price:900,days:12,desc:'Teclado oscuro con detalles azules.',color:'#394b79'},
+    {id:'galaxy',name:'Galaxia',emoji:'🌌',price:1300,days:18,desc:'Violetas y estrellas para tu piano.',color:'#926ad3'},
+    {id:'gold',name:'Dorado',emoji:'👑',price:1700,days:24,desc:'El teclado más brillante de Sonata.',color:'#c59a35'},
+    {id:'ocean',name:'Océano',emoji:'🐬',price:1000,days:14,desc:'Azules profundos y espuma del mar.',color:'#227aab'},
+    {id:'rainbow',name:'Arcoíris',emoji:'🌈',price:1500,days:21,desc:'Un teclado lleno de color.',color:'#b372d9'}
   ];
-  const defaultState = () => ({xp:0,coins:0,completed:{},chests:{},songScores:{},ownedSkins:['classic'],equippedSkin:'classic',email:'',invites:[],lastDay:'',streak:0});
+  // Las misiones cuentan ejercicios COMPLETADOS, nunca visitas o aperturas de la app.
+  const MISSIONS = [
+    {id:'d1',period:'daily',icon:'🎹',name:'Un ratito de piano',detail:'Completa una lección o una canción hoy.',metric:'activities',goal:1,reward:15},
+    {id:'d2',period:'daily',icon:'🎵',name:'Doble práctica',detail:'Completa dos ejercicios hoy.',metric:'activities',goal:2,reward:25},
+    {id:'d3',period:'daily',icon:'🎂',name:'Momento musical',detail:'Termina una canción hoy.',metric:'songs',goal:1,reward:20},
+    {id:'w1',period:'weekly',icon:'🔥',name:'Tres días de música',detail:'Practica en tres días diferentes esta semana.',metric:'days',goal:3,reward:75},
+    {id:'w2',period:'weekly',icon:'🏅',name:'Superpianista',detail:'Completa cinco ejercicios esta semana.',metric:'activities',goal:5,reward:90},
+    {id:'w3',period:'weekly',icon:'🎶',name:'Amante de las canciones',detail:'Termina tres canciones esta semana.',metric:'songs',goal:3,reward:65}
+  ];
+  const ACHIEVEMENTS = [
+    {id:'first',icon:'🎹',name:'Primera nota',detail:'Completa tu primera lección.',earned:()=>completedCount()>=1},
+    {id:'three',icon:'🎼',name:'Buen comienzo',detail:'Completa 3 lecciones.',earned:()=>completedCount()>=3},
+    {id:'five',icon:'🏆',name:'Melodista',detail:'Completa 5 lecciones.',earned:()=>completedCount()>=5},
+    {id:'perfect',icon:'🌟',name:'Tres estrellas',detail:'Consigue tres estrellas en una lección.',earned:()=>Object.values(state.completed).some(x=>x.stars===3)},
+    {id:'song',icon:'🎂',name:'Mi primera canción',detail:'Termina una canción.',earned:()=>Object.keys(state.songScores).length>=1},
+    {id:'collector',icon:'🎁',name:'Buscatesoros',detail:'Abre tu primer cofre.',earned:()=>Object.keys(state.chests).length>=1},
+    {id:'fashion',icon:'🛍️',name:'Coleccionista',detail:'Compra una skin en la tienda.',earned:()=>state.ownedSkins.length>1},
+    {id:'master',icon:'💎',name:'Gran pianista',detail:'Completa las 8 lecciones.',earned:()=>completedCount()>=8}
+  ];
+  const defaultState = () => ({xp:0,coins:0,completed:{},chests:{},songScores:{},ownedSkins:['classic'],equippedSkin:'classic',equippedBadge:'',email:'',invites:[],lastDay:'',streak:0,practiceDays:[],dailyCoinDate:'',missionStats:{daily:{},weekly:{}},claimedMissions:{}});
   function loadState(){
     try {
       const saved=JSON.parse(localStorage.getItem(STORE_KEY)||'null');
       if(!saved||typeof saved!=='object')return defaultState();
-      return {...defaultState(),...saved,completed:saved.completed||{},chests:saved.chests||{},songScores:saved.songScores||{},invites:Array.isArray(saved.invites)?saved.invites:[],ownedSkins:Array.isArray(saved.ownedSkins)?['classic',...saved.ownedSkins.filter(id=>SKINS.some(s=>s.id===id))]:['classic'],equippedSkin:SKINS.some(s=>s.id===saved.equippedSkin)?saved.equippedSkin:'classic'};
+      return {...defaultState(),...saved,completed:saved.completed||{},chests:saved.chests||{},songScores:saved.songScores||{},invites:Array.isArray(saved.invites)?saved.invites:[],practiceDays:Array.isArray(saved.practiceDays)?saved.practiceDays:[],missionStats:saved.missionStats&&typeof saved.missionStats==='object'?{daily:saved.missionStats.daily||{},weekly:saved.missionStats.weekly||{}}:{daily:{},weekly:{}},claimedMissions:saved.claimedMissions&&typeof saved.claimedMissions==='object'?saved.claimedMissions:{},ownedSkins:Array.isArray(saved.ownedSkins)?['classic',...saved.ownedSkins.filter(id=>SKINS.some(s=>s.id===id))]:['classic'],equippedSkin:SKINS.some(s=>s.id===saved.equippedSkin)?saved.equippedSkin:'classic'};
     } catch {return defaultState()}
   }
   let state=loadState();
@@ -70,9 +91,81 @@
   const isLocked = lesson => lesson.unit>1 && !premiumAccess();
   const songLocked = song => song.premium && !premiumAccess();
   const isAvailable = index => index===0 || !!state.completed[LESSONS[index-1].id];
-  const dailyKey = () => new Date().toLocaleDateString('en-CA');
+  const dailyKey = () => {const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+  const practiceDayCount = () => (Array.isArray(state.practiceDays)?new Set(state.practiceDays).size:0);
+  // Semana ISO local: lunes como primer día, con fechas YYYY-MM-DD.
+  function weekKey(date=new Date()){
+    const d=new Date(date.getFullYear(),date.getMonth(),date.getDate());
+    d.setDate(d.getDate()-((d.getDay()+6)%7));
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function missionBucket(period){
+    const key=period==='daily'?dailyKey():weekKey();
+    const entries=state.missionStats[period];
+    if(!entries[key])entries[key]={activities:0,songs:0,days:[]};
+    return {key,stats:entries[key]};
+  }
+  function missionCount(mission){
+    const {stats}=missionBucket(mission.period);
+    return mission.metric==='days'?new Set(stats.days||[]).size:Number(stats[mission.metric]||0);
+  }
+  function missionClaimKey(mission){return `${mission.period}:${mission.period==='daily'?dailyKey():weekKey()}:${mission.id}`;}
+  function missionIsClaimed(mission){return !!state.claimedMissions[missionClaimKey(mission)];}
+  function trackMissionProgress(type){
+    const today=dailyKey();
+    for(const period of ['daily','weekly']){
+      const {stats}=missionBucket(period);
+      stats.activities=(stats.activities||0)+1;
+      if(type==='song')stats.songs=(stats.songs||0)+1;
+      if(!Array.isArray(stats.days))stats.days=[];
+      if(!stats.days.includes(today))stats.days.push(today);
+    }
+    // El historial de periodos anteriores no hace falta para calcular misiones futuras.
+    for(const period of ['daily','weekly']){
+      const key=period==='daily'?today:weekKey();
+      const periods=Object.keys(state.missionStats[period]).sort();
+      for(const old of periods.slice(0,-8))if(old!==key)delete state.missionStats[period][old];
+    }
+  }
+  function claimMission(id){
+    const m=MISSIONS.find(x=>x.id===id);if(!m)return;
+    if(missionIsClaimed(m)){toast('Esta recompensa ya está reclamada.');return}
+    if(missionCount(m)<m.goal){toast('Completa la misión antes de reclamar el premio.');return}
+    state.claimedMissions[missionClaimKey(m)]=true;
+    state.coins+=m.reward;save();navigate('missions');toast(`¡Misión completada! +${m.reward} monedas 🪙`);
+  }
+  function missionCard(m){
+    const count=Math.min(m.goal,missionCount(m)),claimed=missionIsClaimed(m),ready=count>=m.goal;
+    return `<article class="mission-card ${ready?'mission-ready':''}">
+      <div class="mission-symbol" aria-hidden="true">${m.icon}</div>
+      <div class="mission-body"><h3>${clean(m.name)}</h3><p>${clean(m.detail)}</p>
+      <div class="mission-progress" role="progressbar" aria-label="Progreso de ${clean(m.name)}" aria-valuemin="0" aria-valuemax="${m.goal}" aria-valuenow="${count}"><span style="width:${Math.round(count/m.goal*100)}%"></span></div>
+      <small>${count} de ${m.goal}</small></div>
+      <div class="mission-prize"><b>🪙 ${m.reward}</b><button class="btn ${claimed?'secondary':''}" data-claim-mission="${m.id}" ${(!ready||claimed)?'disabled':''}>${claimed?'✓ RECLAMADA':ready?'RECLAMAR':'EN CURSO'}</button></div>
+    </article>`;
+  }
+  function missions(){
+    const today=dailyKey(),monday=weekKey();
+    const doneToday=state.practiceDays.includes(today);
+    const ready=MISSIONS.filter(m=>missionCount(m)>=m.goal&&!missionIsClaimed(m)).length;
+    return `${heading('Misiones musicales','Practica cada día y consigue monedas para tus skins.',`🪙 ${state.coins} MONEDAS`)}
+      <div class="mission-banner"><div><div class="eyebrow">TU OBJETIVO DE HOY</div><h2>${doneToday?'¡Ya has practicado hoy! 🎉':'¡Empieza tu práctica! 🎹'}</h2><p>Las misiones avanzan al terminar una lección o canción. No necesitas acertar todo a la primera.</p></div><div class="mission-flame">🔥<b>${state.streak}</b><small>racha</small></div></div>
+      ${ready?`<div class="mission-ready-notice">🎉 ¡Tienes ${ready} ${ready===1?'premio listo':'premios listos'} para reclamar!</div>`:''}
+      <div class="mission-section-title"><h2>☀️ Misiones diarias</h2><small>Reinician cada día · ${today}</small></div>
+      <div class="mission-list">${MISSIONS.filter(m=>m.period==='daily').map(missionCard).join('')}</div>
+      <div class="mission-section-title"><h2>📅 Misiones semanales</h2><small>Semana desde el lunes ${monday}</small></div>
+      <div class="mission-list">${MISSIONS.filter(m=>m.period==='weekly').map(missionCard).join('')}</div>
+      <div class="mission-help">💡 Completar una actividad también cuenta para tu racha y para el desbloqueo por días de práctica de la tienda. Cada misión solo da monedas una vez por periodo. Los premios no tienen valor monetario real.</div>
+      <button class="btn" data-nav="path">IR A PRACTICAR →</button>`;
+  }
+
   function save(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state))}catch(e){console.warn('No se pudo guardar progreso',e)}syncHeader()}
-  function syncHeader(){document.getElementById('topXP').textContent=state.xp; document.querySelector('.top-avatar').textContent=(state.email[0]||'P').toUpperCase();document.documentElement.dataset.skin=state.equippedSkin||'classic'}
+  function syncHeader(){
+    document.getElementById('topXP').textContent=state.xp;
+    const earned=ACHIEVEMENTS.find(a=>a.id===state.equippedBadge && a.earned());
+    document.querySelector('.top-avatar').innerHTML=`<span>${clean((state.email[0]||'P').toUpperCase())}</span>${earned?`<span class="avatar-badge" aria-hidden="true">${earned.icon}</span>`:''}`;
+    document.documentElement.dataset.skin=state.equippedSkin||'classic';
+  }
   function toast(message){const node=document.getElementById('toast');node.textContent=message;node.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>node.classList.remove('show'),2500)}
   function progressBar(){return `<div class="lesson-progress" aria-label="Progreso del curso"><span style="width:${completedCount()/LESSONS.length*100}%"></span></div>`}
   function heading(title,subtitle='',pill=''){return `<header class="page-head"><div><h1>${title}</h1><p>${subtitle}</p></div>${pill?`<span class="pill">${pill}</span>`:''}</header>`}
@@ -85,6 +178,8 @@
       ${section('Continuar aprendiendo','Ver curso','path')}
       <section class="hero"><div class="hero-art"><div class="sheet"><span>♫</span></div></div><div class="hero-copy"><div class="eyebrow">UNIDAD ${l.unit} · ${l.unit===1?'FUNDAMENTOS':'NIVEL INTERMEDIO'}</div><h2>${clean(l.title)}</h2><p>${clean(l.subtitle)}. Practica nota a nota y consigue estrellas.</p><button class="btn" data-lesson="${l.id}">${isLocked(l)?'VER SONATA COMPLETO':finish===LESSONS.length?'REPETIR LECCIÓN':'CONTINUAR →'}</button></div></section>
       <section class="stats"><div class="stat"><div class="s-icon">✦</div><div><b>${state.xp} XP</b><small>Experiencia</small></div></div><div class="stat"><div class="s-icon">🔥</div><div><b>${state.streak} ${state.streak===1?'día':'días'}</b><small>Racha de práctica</small></div></div><div class="stat"><div class="s-icon">🎵</div><div><b>${finish} de ${LESSONS.length}</b><small>Lecciones</small></div></div></section>
+      ${section('Misiones de hoy','Ver todas','missions')}
+      <div class="mission-home-card"><span class="mission-home-icon">🎯</span><div><b>${MISSIONS.filter(m=>missionCount(m)>=m.goal&&!missionIsClaimed(m)).length?'¡Tienes recompensas disponibles!':'Practica y gana monedas extra'}</b><p>Misiones diarias, semanales y rachas. Completa ejercicios para conseguir skins.</p></div><button class="btn" data-nav="missions">MISIONES</button></div>
       ${section('Tu camino musical','Ver lecciones','path')}
       <button class="card path-preview" data-nav="path"><div class="eyebrow">UNIDAD 1 · FUNDAMENTOS</div><div class="mini-track">${preview}</div></button>
       ${section('Tienda de skins','Ver tienda','shop')}
@@ -110,14 +205,26 @@
   }
   function chestCard(c){const opened=state.chests[c.id],unlocked=completedCount()>=c.requires;
     return `<article class="chest-card ${c.id}"><div class="chest-rarity">${clean(c.name.toUpperCase())}</div><div class="chest-visual">${opened?'🏆':chestSvg(c)}</div><h3>Cofre ${clean(c.name.toLowerCase())}</h3><p>${clean(c.desc)}</p><div class="meta">${opened?`Conseguiste ${opened.xp} XP y ${opened.coins} monedas`:`Se desbloquea al completar ${c.requires} ${c.requires===1?'lección':'lecciones'}`}</div><button class="btn" data-chest="${c.id}" ${(!unlocked||opened)?'disabled':''}>${opened?'✓ ABIERTO':unlocked?'ABRIR COFRE':'🔒 AÚN BLOQUEADO'}</button></article>`}
-  function rewards(){return `${heading('Tus cofres','Cuanto más aprendes, mejores recompensas consigues.',`🪙 ${state.coins} MONEDAS`)}<div class="path-intro"><div><div class="eyebrow">RECOMPENSAS SONATA</div><h2>¡Toca, aprende y descubre!</h2><p>Hay cinco rarezas. Los cofres se abren una sola vez en este MVP y los premios se guardan en tu dispositivo.</p></div><span class="big-note">🎁</span></div>${section('Colección de cofres')}<div class="chest-grid">${CHESTS.map(chestCard).join('')}</div><p class="footer-note">Los cofres no contienen compras, dinero real ni acceso Premium.</p>`}
+  function rewards(){return `${heading('Tus cofres','Cuanto más aprendes, mejores recompensas consigues.',`🪙 ${state.coins} MONEDAS`)}<div class="path-intro"><div><div class="eyebrow">RECOMPENSAS SONATA</div><h2>¡Toca, aprende y descubre!</h2><p>Hay cinco rarezas. Los cofres se abren una sola vez en este MVP y los premios se guardan en tu dispositivo.</p></div><span class="big-note">🎁</span></div><button class="btn secondary" data-nav="missions" style="margin:0 0 14px">🎯 VER MISIONES Y GANAR MONEDAS</button>${section('Colección de cofres')}<div class="chest-grid">${CHESTS.map(chestCard).join('')}</div><p class="footer-note">Los cofres no contienen compras, dinero real ni acceso Premium.</p>`}
   function skinPreview(skin){return `<div class="skin-preview ${skin.id}" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><i></i><i></i><i></i></div>`}
   function shop(){return `${heading('Tienda de Sonata','Compra aspectos con monedas ganadas jugando.',`🪙 ${state.coins} MONEDAS`)}
-    <div class="path-intro"><div><div class="eyebrow">PERSONALIZA TU PIANO</div><h2>¡Dale estilo a tu música!</h2><p>Las skins cambian el aspecto del teclado de práctica. No afectan a los aciertos ni desbloquean contenido Premium.</p></div><span class="big-note">🛍️</span></div>
-    <div class="skin-grid">${SKINS.map(s=>{const owned=state.ownedSkins.includes(s.id),equipped=state.equippedSkin===s.id,canBuy=state.coins>=s.price;return `<article class="skin-card"><div class="skin-title"><span>${s.emoji}</span><b>${clean(s.name)}</b></div>${skinPreview(s)}<p>${clean(s.desc)}</p><button class="btn ${equipped?'secondary':''}" data-skin-action="${s.id}" ${(!owned&&!canBuy)?'disabled':''}>${equipped?'✓ EQUIPADA':owned?'EQUIPAR':`🪙 ${s.price} · COMPRAR`}</button></article>`}).join('')}</div>
+    <div class="path-intro"><div><div class="eyebrow">PERSONALIZA TU PIANO</div><h2>¡Dale estilo a tu música!</h2><p>Las skins cambian el aspecto del teclado de práctica. No afectan a los aciertos ni desbloquean contenido Premium. Gana 40 monedas por el primer ejercicio completado de cada día.</p></div><span class="big-note">🛍️</span></div>
+    <div class="skin-grid">${SKINS.map(s=>{const owned=state.ownedSkins.includes(s.id),equipped=state.equippedSkin===s.id,daysNeeded=s.days||0,daysLeft=Math.max(0,daysNeeded-practiceDayCount()),canBuy=state.coins>=s.price&&daysLeft===0;return `<article class="skin-card"><div class="skin-title"><span>${s.emoji}</span><b>${clean(s.name)}</b></div>${skinPreview(s)}<p>${clean(s.desc)}</p><p class="skin-requirement">${!owned&&daysLeft?`🔒 Faltan ${daysLeft} días de práctica`:owned?'✓ Ya es tuya':`Disponible desde ${daysNeeded} días de práctica`}</p><button class="btn ${equipped?'secondary':''}" data-skin-action="${s.id}" ${(!owned&&!canBuy)?'disabled':''}>${equipped?'✓ EQUIPADA':owned?'EQUIPAR':daysLeft?`🪙 ${s.price} · ${daysNeeded} DÍAS`:`🪙 ${s.price} · COMPRAR`}</button></article>`}).join('')}</div>
+    ${section('Insignias de logros')}<p class="achievement-intro">Desbloquea medallas por aprender. Elige una insignia conseguida para mostrarla en tu avatar.</p>${achievementCards()}
     <p class="footer-note">Las monedas son ficticias, no se compran con dinero real y los objetos se guardan en este dispositivo.</p>`}
+  function achievementCards(){
+    const earned=ACHIEVEMENTS.filter(a=>a.earned()).length;
+    return `<div class="achievement-summary">🏅 ${earned} de ${ACHIEVEMENTS.length} insignias desbloqueadas · Se ganan jugando y no cuestan monedas.</div>
+      <div class="achievement-grid">${ACHIEVEMENTS.map(a=>{
+        const unlocked=a.earned(),equipped=unlocked&&state.equippedBadge===a.id;
+        return `<article class="achievement-card ${unlocked?'earned':'unearned'}"><div class="achievement-icon">${unlocked?a.icon:'🔒'}</div>
+          <b>${clean(a.name)}</b><p>${clean(a.detail)}</p>
+          <button class="btn ${equipped?'secondary':''}" data-badge-equip="${a.id}" ${unlocked?'':'disabled'}>${equipped?'✓ EN TU PERFIL':unlocked?'MOSTRAR EN PERFIL':'POR CONSEGUIR'}</button></article>`;
+      }).join('')}</div>`;
+  }
   function profile(){const free=premiumAccess();return `${heading('Tu perfil','Tu progreso y los ajustes de Sonata.')}<div class="profile-card"><h2>👤 Tu cuenta (modo prueba)</h2><p>Escribe un correo para simular una cuenta. No se envía ningún mensaje ni se verifica la propiedad de la dirección: todavía no hay inicio de sesión real.</p><form id="emailForm" class="field-row"><input type="email" id="emailInput" required autocomplete="email" placeholder="tu@email.com" value="${clean(state.email)}" aria-label="Correo de cuenta"><button class="btn" type="submit">GUARDAR</button></form><span class="badge">${free?'Sonata Completo · Acceso de prueba':'Plan principiante · Gratis'}</span></div>
-      <div class="profile-card"><h2>📊 Tus estadísticas</h2><p><strong>${completedCount()}</strong> lecciones completas · <strong>${state.xp}</strong> XP · <strong>${state.coins}</strong> monedas · <strong>${Object.keys(state.chests).length}</strong> cofres abiertos</p><button class="btn secondary" data-nav="path">VER CAMINO MUSICAL</button> <button class="btn secondary" data-nav="shop">🛍️ TIENDA DE SKINS</button></div>
+      <div class="profile-card"><h2>📊 Tus estadísticas</h2><p><strong>${completedCount()}</strong> lecciones completas · <strong>${state.xp}</strong> XP · <strong>${state.coins}</strong> monedas · <strong>${Object.keys(state.chests).length}</strong> cofres abiertos</p><button class="btn secondary" data-nav="path">VER CAMINO MUSICAL</button> <button class="btn secondary" data-nav="shop">🛍️ TIENDA DE SKINS</button> <button class="btn secondary" data-nav="missions">🎯 MISIONES</button></div>
+      <div class="profile-card"><h2>🏅 Tus insignias</h2><p>Elige una insignia ganada para lucirla en tu perfil.</p>${achievementCards()}</div>
       <div class="profile-card"><h2>👑 Propietario de Sonata</h2><p>El correo del propietario dispone de acceso de prueba al curso completo y puede añadir otro correo autorizado.</p>${state.email===OWNER_EMAIL?`<div class="owner-tools"><h3>Herramienta especial · Demostración</h3><form id="inviteForm" class="field-row"><input type="email" id="inviteInput" required placeholder="otro@email.com" aria-label="Nuevo correo autorizado"><button class="btn" type="submit">AUTORIZAR</button></form><p>Direcciones autorizadas en este dispositivo: ${state.invites.length?state.invites.map(clean).join(', '):'ninguna'}</p></div>`:`<div class="notice">El panel especial aparece al introducir el correo propietario. Esta identificación es solo una simulación local y NO es segura.</div>`}</div>
       <div class="profile-card"><h2>⚙️ Pruebas</h2><p>Se guardan tus datos con el almacenamiento de este navegador. Si borras los datos del sitio, se perderá el progreso.</p><button class="btn ghost" id="resetProgress">BORRAR PROGRESO DE PRUEBA</button></div>
       <p class="footer-note">MVP de evaluación. Sin cuentas verificadas, pagos operativos ni sincronización entre dispositivos.</p>`}
@@ -164,7 +271,7 @@
       <circle cx="${f.x}" cy="${f.y}" r="${active?15:12}" fill="${active?'#1686d9':'#dfe8ef'}" stroke="white" stroke-width="2"/>
       <text x="${f.x}" y="${f.y+4.5}" text-anchor="middle" font-size="13" font-weight="bold" fill="${active?'white':'#647f91'}">${i+1}</text></g>`;
     }).join('');
-    return `<div class="finger-training" id="fingerTraining"><div class="hand-graphic ${hand==='left'?'left-hand':''}" aria-hidden="true"><svg viewBox="0 0 190 125" role="presentation"><path d="M54 103 Q55 82 76 78 L128 80 Q145 90 138 117 L67 117 Z" fill="#dfe8ef" stroke="#bdcbd8" stroke-width="2" />${fingers}</svg></div><div class="finger-training-copy"><b>${hand==='right'?'🤚 Mano derecha':'✋ Mano izquierda'} · dedo <span id="suggestedFinger">${hand==='right'?info.finger:6-info.finger}</span></b><span id="fingerPosition">Posición: ${info.position.name} · pulgar en ${LETTER[info.position.base]} (${info.position.base.replace('5',' agudo')})</span><small>1 pulgar · 2 índice · 3 corazón · 4 anular · 5 meñique</small></div></div>`;
+    return `<div class="finger-training" id="fingerTraining"><div class="hand-graphic ${hand==='left'?'left-hand':''}" aria-hidden="true"><svg viewBox="0 0 190 125" role="presentation"><path d="M54 103 Q55 82 76 78 L128 80 Q145 90 138 117 L67 117 Z" fill="#dfe8ef" stroke="#bdcbd8" stroke-width="2" />${fingers}</svg></div><div class="finger-training-copy"><b>${hand==='right'?'🤚 Mano derecha':'✋ Mano izquierda'} · dedo <span id="suggestedFinger">${hand==='right'?info.finger:6-info.finger}</span></b><span id="fingerPosition">Posición: ${info.position.name} · pulgar en ${LETTER[info.position.base]} (${info.position.base.replace('5',' agudo')})</span><small>La mano semitransparente indica la posición; sigue el dedo iluminado sobre la tecla.</small></div></div>`;
   }
   function updateFingerGuide(note){
     const current=document.getElementById('fingerTraining');
@@ -180,13 +287,49 @@
   function handOverlay(note){
     const birthday=activity?.type==='song'&&getSong(activity.id)?.keyboard==='birthday';
     const seq=birthday?['Sol','La','Si','Do5','Re5','Mi5','Fa5','Sol5']:['Do','Re','Mi','Fa','Sol','La','Si','Do5'];
-    const position=fingeringFor(note).position;
-    const hand=activeHand();
-    return `<div class="keyboard-hand-overlay ${hand==='left'?'mirror':''}" id="keyboardHands" aria-hidden="true">${position.notes.map((n,i)=>{
-      const slot=seq.indexOf(n);if(slot<0)return '';
-      const active=n===note;
-      return `<span class="ghost-finger ${active?'active':''}" style="left:${((slot+.5)/seq.length*100).toFixed(3)}%;top:${[49,35,29,35,48][i]}%"><i>${hand==='left'?5-i:i+1}</i></span>`;
-    }).join('')}</div>`;
+    const info=fingeringFor(note), hand=activeHand(), left=hand==='left';
+    // Dibujamos la mano desde arriba. Cada punta está alineada con su tecla blanca.
+    // Mano derecha: pulgar a la izquierda; izquierda: pulgar a la derecha.
+    const visible=info.position.notes.map((n,i)=>({note:n,physicalIndex:i,slot:seq.indexOf(n)})).filter(x=>x.slot>=0);
+    const pointAt=idx=>{
+      const finger=visible.find(x=>x.physicalIndex===idx);
+      return finger?(finger.slot+.5)*125:null;
+    };
+    const usable=visible.map(x=>(x.slot+.5)*125);
+    const center=usable.length?(Math.min(...usable)+Math.max(...usable))/2:500;
+    const width=Math.max(150,Math.min(400,usable.length*100));
+    const startX=Math.max(30,Math.min(970,center));
+    const palmX=Math.max(120,Math.min(880,startX+(left?12:-12)));
+    const strokeColor='#b77953';
+    const tips=Array.from({length:5},(_,i)=>pointAt(i)??(center+(i-2)*90));
+    const tipY=[173,132,117,133,164];
+    const wristX=palmX+(left?-23:23);
+    const skinFill='url(#sonata-hand-skin)';
+    const fingers=tips.map((x,i)=>{
+      const active=info.position.notes[i]===note;
+      const knuckle=palmX+(i-2)*24;
+      const y=tipY[i];
+      const thickness=i===0?51:42;
+      const fingerNumber=left?5-i:i+1;
+      return `<g class="hand-finger ${active?'finger-lit':''}">
+        <path d="M ${knuckle.toFixed(1)} 226 Q ${x.toFixed(1)} 197 ${x.toFixed(1)} ${y.toFixed(1)}" fill="none" stroke="#9b624b" stroke-opacity=".29" stroke-width="${thickness+5}" stroke-linecap="round"/>
+        <path d="M ${knuckle.toFixed(1)} 226 Q ${x.toFixed(1)} 197 ${x.toFixed(1)} ${y.toFixed(1)}" fill="none" stroke="${skinFill}" stroke-width="${thickness}" stroke-linecap="round"/>
+        <ellipse cx="${x}" cy="${y}" rx="${i===0?23:20}" ry="${i===0?18:23}" fill="${active?'#ffcb84':'#f6c8a8'}" stroke="${active?'#db8e3a':'#d39975'}" stroke-width="2" />
+        <ellipse cx="${x}" cy="${y-5}" rx="9" ry="11" fill="#ffebdc" opacity=".8"/>
+        ${active?`<circle cx="${x}" cy="${y-4}" r="30" fill="none" stroke="#ffad39" stroke-width="7" opacity=".93"><animate attributeName="opacity" values=".45;.95;.45" dur="1.7s" repeatCount="indefinite"/></circle>`:''}
+        <g transform="translate(${x} ${y-36})"><rect x="-17" y="-15" width="34" height="27" rx="12" fill="${active?'#fa9a33':'#fff9ef'}" stroke="${active?'#cd7429':'#bf977a'}" stroke-width="2"/><text x="0" y="4" text-anchor="middle" font-size="19" font-weight="900" fill="${active?'white':'#8a6247'}">${fingerNumber}</text></g>
+      </g>`;
+    }).join('');
+    return `<div class="keyboard-hand-overlay" id="keyboardHands" aria-hidden="true">
+      <img class="photographic-hand ${left?'hand-image-left':'hand-image-right'}" src="./icons/mano-superpuesta.webp" alt="" draggable="false" style="left:${(center/10).toFixed(2)}%">
+      <svg class="real-hand-svg" viewBox="0 0 1000 300" preserveAspectRatio="none" role="presentation">
+        <defs><linearGradient id="sonata-hand-skin" x1="0" y1="0" x2="1" y2=".9"><stop offset="0" stop-color="#ffe9d6"/><stop offset=".52" stop-color="#f5c5a6"/><stop offset="1" stop-color="#d8a17f"/></linearGradient></defs>
+        <g class="hand-silhouette"><path d="M ${wristX-65} 308 Q ${palmX-74} 263 ${palmX-92} 227 Q ${palmX-87} 207 ${palmX-58} 197 Q ${palmX} 166 ${palmX+60} 197 Q ${palmX+93} 204 ${palmX+95} 229 Q ${palmX+68} 271 ${wristX+68} 308 Z" fill="${skinFill}" stroke="${strokeColor}" stroke-width="3" stroke-opacity=".32"/>
+        ${fingers}
+        <path d="M ${palmX-53} 234 Q ${palmX} 215 ${palmX+56} 234" fill="none" stroke="#b77c5c" stroke-width="3" opacity=".24"/>
+        </g>
+      </svg>
+    </div>`;
   }
   function keyboard(){
     const birthday=activity?.type==='song'&&getSong(activity.id)?.keyboard==='birthday';
@@ -249,11 +392,11 @@
   }
   function progressBarActivity(percent){return `<div class="lesson-progress" aria-label="Progreso del ejercicio"><span id="activityBar" style="width:${percent}%"></span></div>`}
   function resultPage(){if(!activity)return home();const count=activity.notes.length,accuracy=Math.round(activity.correct/Math.max(1,activity.attempts)*100);const stars=accuracy>=95?3:accuracy>=75?2:1;const isLesson=activity.type==='lesson',data=isLesson?getLesson(activity.id):getSong(activity.id);
-    return `<div class="result"><div class="result-burst">🎉</div><h1>¡${isLesson?'Lección':'Canción'} completada!</h1><p>¡Has llegado hasta la última nota!</p><div class="stars" aria-label="${stars} estrellas">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</div><div class="result-stats"><div><strong>${accuracy}%</strong><small>Precisión</small></div><div><strong>${count}</strong><small>Notas correctas</small></div><div><strong>+${activity.awardedXP||0}</strong><small>XP nuevos</small></div></div><p>${activity.newChest?'🎁 ¡Has desbloqueado un cofre! Ve a Recompensas para abrirlo.':'Mejora tus estrellas repitiendo la actividad.'}</p><div class="actions"><button class="btn secondary" id="retryActivity">REPETIR</button><button class="btn" data-nav="${isLesson?'path':'songs'}">CONTINUAR →</button>${activity.newChest?'<button class="btn gold" data-nav="rewards">VER COFRES</button>':''}</div></div>`}
+    return `<div class="result"><div class="result-burst">🎉</div><h1>¡${isLesson?'Lección':'Canción'} completada!</h1><p>¡Has llegado hasta la última nota!</p><div class="stars" aria-label="${stars} estrellas">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</div><div class="result-stats"><div><strong>${accuracy}%</strong><small>Precisión</small></div><div><strong>${count}</strong><small>Notas correctas</small></div><div><strong>+${activity.awardedXP||0}</strong><small>XP nuevos</small></div></div><p>${activity.awardedCoins?`🪙 +${activity.awardedCoins} monedas por practicar hoy. `:''}${activity.newChest?'🎁 ¡Has desbloqueado un cofre! Ve a Recompensas para abrirlo.':'Mejora tus estrellas repitiendo la actividad.'}</p><div class="actions"><button class="btn secondary" id="retryActivity">REPETIR</button><button class="btn" data-nav="${isLesson?'path':'songs'}">CONTINUAR →</button>${activity.newChest?'<button class="btn gold" data-nav="rewards">VER COFRES</button>':''}</div></div>`}
   function navigate(next){
     if(next!=='play'&&next!=='result')stopInputs();
     route=next;
-    const pages={home,path,songs,rewards,shop,profile,premium:paywall,play:playPage,result:resultPage};
+    const pages={home,path,songs,rewards,shop,missions,profile,premium:paywall,play:playPage,result:resultPage};
     main.innerHTML=(pages[next]||home)();
     document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('selected',el.dataset.nav===next||(next==='play'&&el.dataset.nav==='path')));
     window.scrollTo({top:0,behavior:'instant'});
@@ -310,7 +453,7 @@
       showFeedback('wrong',`✕ Has tocado ${LETTER[note]} (${note}). Busca ${LETTER[expected]} (${expected}).`,note);
     }
   }
-  function updateStreak(){const today=dailyKey();if(state.lastDay===today)return;const yesterday=new Date(Date.now()-86400000).toLocaleDateString('en-CA');state.streak=state.lastDay===yesterday?state.streak+1:1;state.lastDay=today}
+  function updateStreak(){const today=dailyKey();if(state.lastDay===today)return;const d=new Date();d.setDate(d.getDate()-1);const yesterday=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;state.streak=state.lastDay===yesterday?state.streak+1:1;state.lastDay=today}
   function finishActivity(){
     if(!activity)return;
     const accuracy=Math.round(activity.correct/Math.max(1,activity.attempts)*100);
@@ -321,12 +464,20 @@
       if(!old){awardedXP=getLesson(activity.id).xp;state.xp+=awardedXP;const before=completedCount();state.completed[activity.id]={stars};const after=completedCount();newChest=CHESTS.some(c=>c.requires>before&&c.requires<=after&&!state.chests[c.id]);updateStreak()}
       else state.completed[activity.id]={stars:Math.max(old.stars,stars)};
     }else state.songScores[activity.id]=Math.max(state.songScores[activity.id]||0,stars);
+    const today=dailyKey();
+    if(!state.practiceDays.includes(today))state.practiceDays.push(today);
+    updateStreak();
+    trackMissionProgress(activity.type);
+    const awardedCoins=state.dailyCoinDate===today?0:40;
+    if(awardedCoins){state.coins+=awardedCoins;state.dailyCoinDate=today}
+    activity.awardedCoins=awardedCoins;
     activity.awardedXP=awardedXP;activity.newChest=newChest;save();stopInputs();navigate('result');
   }
   function buyOrEquipSkin(id){
     const skin=SKINS.find(x=>x.id===id);if(!skin)return;
     if(!state.ownedSkins.includes(id)){
-      if(state.coins<skin.price){toast('Necesitas más monedas. ¡Abre cofres!');return}
+      if(practiceDayCount()<(skin.days||0)){toast(`Necesitas ${skin.days} días de práctica para desbloquear esta skin.`);return}
+      if(state.coins<skin.price){toast('Necesitas más monedas. ¡Practica a diario y abre cofres!');return}
       state.coins-=skin.price;
       state.ownedSkins.push(id);
       toast(`¡Has comprado ${skin.name}!`);
@@ -406,8 +557,14 @@
     const nav=e.target.closest('[data-nav]');if(nav){navigate(nav.dataset.nav);return}
     const lesson=e.target.closest('[data-lesson]');if(lesson){startActivity('lesson',lesson.dataset.lesson);return}
     const song=e.target.closest('[data-song]');if(song){startActivity('song',song.dataset.song);return}
+    const mission=e.target.closest('[data-claim-mission]');if(mission){claimMission(mission.dataset.claimMission);return}
     const chest=e.target.closest('[data-chest]');if(chest){openChest(chest.dataset.chest);return}
     const skin=e.target.closest('[data-skin-action]');if(skin){buyOrEquipSkin(skin.dataset.skinAction);return}
+    const badge=e.target.closest('[data-badge-equip]');if(badge){
+      const selected=ACHIEVEMENTS.find(a=>a.id===badge.dataset.badgeEquip);
+      if(selected?.earned()){state.equippedBadge=selected.id;save();navigate(route);toast(`¡Insignia ${selected.name} equipada!`)}
+      return;
+    }
     const note=e.target.closest('[data-note]');if(note){handleNote(note.dataset.note);return}
     if(e.target.closest('#leaveLesson')){navigate(activity?.type==='song'?'songs':'path');return}
     if(e.target.closest('#hearTarget')&&activity){if(micStream){stopMicrophoneOnly();document.getElementById('sourceStatus').textContent='Micrófono pausado para evitar que el ejemplo se detecte como una nota tocada. Actívalo de nuevo para escuchar tu piano.'}playTone(activity.notes[activity.index]);return}
