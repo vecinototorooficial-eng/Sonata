@@ -1,22 +1,30 @@
 /* Sonata MVP — aplicación PWA local, sin backend ni cobros. */
 (() => {
   'use strict';
-  const OWNER_EMAIL = 'pelayovaldivieso@gmail.com';
   const STORE_KEY = 'sonata_mvp_v1';
   const NOTE_ORDER = ['Do','Re','Mi','Fa','Sol','La','Si','Do5','Re5','Mi5','Fa5','Sol5'];
   const NOTES = {Do:261.63, Re:293.66, Mi:329.63, Fa:349.23, Sol:392.00, La:440, Si:493.88, Do5:523.25, Re5:587.33, Mi5:659.25, Fa5:698.46, Sol5:783.99};
   // Naming follows international letter names: C D E F G A B C.
   const LETTER = {Do:'C',Re:'D',Mi:'E',Fa:'F',Sol:'G',La:'A',Si:'B',Do5:'C',Re5:'D',Mi5:'E',Fa5:'F',Sol5:'G'};
+  const STAFF_LINES = [34,48,62,76,90];
   const STAFF_Y = {Do:104,Re:97,Mi:90,Fa:83,Sol:76,La:69,Si:62,Do5:55,Re5:48,Mi5:41,Fa5:34,Sol5:27};
   const prettyName = note => `${LETTER[note]} · ${note.endsWith('5')?note.replace('5',' agudo'):note}`;
+  // Ledger lines sit a full staff-space outside the staff. C4 is on the first ledger below.
+  // D4 and G5 sit in the spaces immediately outside the staff, so they do not take a ledger.
+  function ledgerLines(y, x1, x2){
+    const gap=14, top=STAFF_LINES[0], bottom=STAFF_LINES[STAFF_LINES.length-1], ys=[];
+    for(let ly=bottom+gap; ly<=y+3; ly+=gap) ys.push(ly);
+    for(let ly=top-gap; ly>=y-3; ly-=gap) ys.push(ly);
+    return ys.map(ly=>`<line x1="${x1}" y1="${ly}" x2="${x2}" y2="${ly}" stroke="#7795a7" stroke-width="1.8"/>`).join('');
+  }
   function staffDrawing(note){
     const y=STAFF_Y[note];
-    const lines=[34,48,62,76,90].map(pos=>`<line x1="24" y1="${pos}" x2="336" y2="${pos}" stroke="#a9bfcc" stroke-width="1.5"/>`).join('');
-    const ledger=y===104?'<line x1="166" y1="104" x2="210" y2="104" stroke="#7795a7" stroke-width="1.8"/>':'';
+    const lines=STAFF_LINES.map(pos=>`<line x1="24" y1="${pos}" x2="336" y2="${pos}" stroke="#a9bfcc" stroke-width="1.5"/>`).join('');
+    const up=y>62, sx=up?198:174, y1=up?y-2:y+2, y2=up?y-44:y+44;
     return `<svg class="music-staff-svg" viewBox="0 0 360 130" role="img" aria-label="Partitura en clave de sol: nota ${prettyName(note)}">
-      ${lines}${ledger}<text x="35" y="88" font-size="63" font-family="Georgia,serif" fill="#50758c">𝄞</text>
+      ${lines}${ledgerLines(y,166,210)}<text x="35" y="88" font-size="63" font-family="Georgia,serif" fill="#50758c">𝄞</text>
       <ellipse cx="186" cy="${y}" rx="13" ry="9" transform="rotate(-18 186 ${y})" fill="#1686d9"/>
-      <line x1="198" y1="${y-2}" x2="198" y2="${y-44}" stroke="#1686d9" stroke-width="3" stroke-linecap="round"/>
+      <line x1="${sx}" y1="${y1}" x2="${sx}" y2="${y2}" stroke="#1686d9" stroke-width="3" stroke-linecap="round"/>
     </svg>`;
   }
   const LESSONS = [
@@ -69,25 +77,38 @@
     {id:'perfect',icon:'🌟',name:'Tres estrellas',detail:'Consigue tres estrellas en una lección.',earned:()=>Object.values(state.completed).some(x=>x.stars===3)},
     {id:'song',icon:'🎂',name:'Mi primera canción',detail:'Termina una canción.',earned:()=>Object.keys(state.songScores).length>=1},
     {id:'collector',icon:'🎁',name:'Buscatesoros',detail:'Abre tu primer cofre.',earned:()=>Object.keys(state.chests).length>=1},
-    {id:'fashion',icon:'🛍️',name:'Coleccionista',detail:'Compra una skin en la tienda.',earned:()=>state.ownedSkins.length>1},
+    {id:'fashion',icon:'🛍️',name:'Coleccionista',detail:'Compra una skin en la tienda.',earned:()=>state.ownedSkins.some(id=>id!=='classic')},
     {id:'master',icon:'💎',name:'Gran pianista',detail:'Completa las 8 lecciones.',earned:()=>completedCount()>=8}
   ];
   const defaultState = () => ({xp:0,coins:0,completed:{},chests:{},songScores:{},ownedSkins:['classic'],equippedSkin:'classic',equippedBadge:'',email:'',invites:[],lastDay:'',streak:0,practiceDays:[],dailyCoinDate:'',missionStats:{daily:{},weekly:{}},claimedMissions:{}});
+  function normalizeOwnedSkins(list){
+    const ids=[];
+    const add=id=>{if(SKINS.some(skin=>skin.id===id)&&!ids.includes(id))ids.push(id);};
+    add('classic');
+    if(Array.isArray(list))list.forEach(add);
+    return ids;
+  }
   function loadState(){
     try {
       const saved=JSON.parse(localStorage.getItem(STORE_KEY)||'null');
       if(!saved||typeof saved!=='object')return defaultState();
-      return {...defaultState(),...saved,completed:saved.completed||{},chests:saved.chests||{},songScores:saved.songScores||{},invites:Array.isArray(saved.invites)?saved.invites:[],practiceDays:Array.isArray(saved.practiceDays)?saved.practiceDays:[],missionStats:saved.missionStats&&typeof saved.missionStats==='object'?{daily:saved.missionStats.daily||{},weekly:saved.missionStats.weekly||{}}:{daily:{},weekly:{}},claimedMissions:saved.claimedMissions&&typeof saved.claimedMissions==='object'?saved.claimedMissions:{},ownedSkins:Array.isArray(saved.ownedSkins)?['classic',...saved.ownedSkins.filter(id=>SKINS.some(s=>s.id===id))]:['classic'],equippedSkin:SKINS.some(s=>s.id===saved.equippedSkin)?saved.equippedSkin:'classic'};
+      return {...defaultState(),...saved,completed:saved.completed||{},chests:saved.chests||{},songScores:saved.songScores||{},invites:Array.isArray(saved.invites)?saved.invites:[],practiceDays:Array.isArray(saved.practiceDays)?saved.practiceDays:[],missionStats:saved.missionStats&&typeof saved.missionStats==='object'?{daily:saved.missionStats.daily||{},weekly:saved.missionStats.weekly||{}}:{daily:{},weekly:{}},claimedMissions:saved.claimedMissions&&typeof saved.claimedMissions==='object'?saved.claimedMissions:{},ownedSkins:normalizeOwnedSkins(saved.ownedSkins),equippedSkin:SKINS.some(s=>s.id===saved.equippedSkin)?saved.equippedSkin:'classic'};
     } catch {return defaultState()}
   }
   let state=loadState();
+  function storedSkinsNeedCleanup(){
+    try{
+      const saved=JSON.parse(localStorage.getItem(STORE_KEY)||'null');
+      return !!saved && JSON.stringify(saved.ownedSkins)!==JSON.stringify(state.ownedSkins);
+    }catch{return false}
+  }
   let route='home',activity=null,audioContext=null,micStream=null,micContext=null,micSource=null,micNode=null,micRaf=null,lastDetected='',lastDetectedAt=0;
   let midiInput=null,midiAccess=null,toastTimeout,feedbackTimer=null,demoTimer=null,detectedCooldown=0,quietFrames=0;
   const main=document.getElementById('mainContent');
   const clean = value => String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const normalize = value => String(value||'').trim().toLowerCase();
   const completedCount = () => LESSONS.filter(l=>state.completed[l.id]).length;
-  const premiumAccess = () => state.email===OWNER_EMAIL || state.invites.includes(state.email);
+  const premiumAccess = () => false;
   const isLocked = lesson => lesson.unit>1 && !premiumAccess();
   const songLocked = song => song.premium && !premiumAccess();
   const isAvailable = index => index===0 || !!state.completed[LESSONS[index-1].id];
@@ -169,42 +190,43 @@
   function toast(message){const node=document.getElementById('toast');node.textContent=message;node.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>node.classList.remove('show'),2500)}
   function progressBar(){return `<div class="lesson-progress" aria-label="Progreso del curso"><span style="width:${completedCount()/LESSONS.length*100}%"></span></div>`}
   function heading(title,subtitle='',pill=''){return `<header class="page-head"><div><h1>${title}</h1><p>${subtitle}</p></div>${pill?`<span class="pill">${pill}</span>`:''}</header>`}
-  function section(title,action='',target=''){return `<div class="section-heading"><h2>${title}</h2>${action?`<button class="text-action" data-nav="${target}">${action} ›</button>`:''}</div>`}
+  function section(title,action='',target=''){return `<div class="section-heading"><h2>${title}</h2>${action?`<button class="text-action" data-nav="${target}"><span>${action}</span><span aria-hidden="true"> ›</span></button>`:''}</div>`}
   function home(){
     const nextIndex=LESSONS.findIndex(l=>!state.completed[l.id]);const i=nextIndex<0?LESSONS.length-1:nextIndex,l=LESSONS[i],finish=completedCount();
     const preview=LESSONS.slice(0,5).map((x,j)=>`<div class="mini-step ${state.completed[x.id]?'done':j===i?'current':''}"><i>${state.completed[x.id]?'✓':x.emoji}</i><b>${clean(x.title)}</b><small>${state.completed[x.id]?'Completada':j===i?'Siguiente':''}</small></div>`).join('');
     const nextChest=CHESTS.find(c=>!state.chests[c.id]);
+    const chestLessonsLeft=nextChest?Math.max(0,nextChest.requires-finish):0;
     return `${heading(`¡Hola${state.email?' de nuevo':''}! 👋`,'Tu próxima sesión de piano empieza aquí.', '🎹 APRENDE A TU RITMO')}
       ${section('Continuar aprendiendo','Ver curso','path')}
-      <section class="hero"><div class="hero-art"><div class="sheet"><span>♫</span></div></div><div class="hero-copy"><div class="eyebrow">UNIDAD ${l.unit} · ${l.unit===1?'FUNDAMENTOS':'NIVEL INTERMEDIO'}</div><h2>${clean(l.title)}</h2><p>${clean(l.subtitle)}. Practica nota a nota y consigue estrellas.</p><button class="btn" data-lesson="${l.id}">${isLocked(l)?'VER SONATA COMPLETO':finish===LESSONS.length?'REPETIR LECCIÓN':'CONTINUAR →'}</button></div></section>
+      <section class="hero"><div class="hero-art"><div class="sheet"><span>♫</span></div></div><div class="hero-copy"><div class="eyebrow">UNIDAD ${l.unit} · ${l.unit===1?'FUNDAMENTOS':'NIVEL INTERMEDIO'}</div><h2>${clean(l.title)}</h2><p><span>${clean(l.subtitle)}</span>. <span>Practica nota a nota y consigue estrellas.</span></p><button class="btn" data-lesson="${l.id}">${isLocked(l)?'VER SONATA COMPLETO':finish===LESSONS.length?'REPETIR LECCIÓN':'CONTINUAR →'}</button></div></section>
       <section class="stats"><div class="stat"><div class="s-icon">✦</div><div><b>${state.xp} XP</b><small>Experiencia</small></div></div><div class="stat"><div class="s-icon">🔥</div><div><b>${state.streak} ${state.streak===1?'día':'días'}</b><small>Racha de práctica</small></div></div><div class="stat"><div class="s-icon">🎵</div><div><b>${finish} de ${LESSONS.length}</b><small>Lecciones</small></div></div></section>
       ${section('Misiones de hoy','Ver todas','missions')}
-      <div class="mission-home-card"><span class="mission-home-icon">🎯</span><div><b>${MISSIONS.filter(m=>missionCount(m)>=m.goal&&!missionIsClaimed(m)).length?'¡Tienes recompensas disponibles!':'Practica y gana monedas extra'}</b><p>Misiones diarias, semanales y rachas. Completa ejercicios para conseguir skins.</p></div><button class="btn" data-nav="missions">MISIONES</button></div>
+      <div class="mission-home-card"><span class="mission-home-icon">🎯</span><div><b>${MISSIONS.filter(m=>missionCount(m)>=m.goal&&!missionIsClaimed(m)).length?'¡Tienes recompensas disponibles!':'Practica y gana monedas extra'}</b><p>Misiones diarias, semanales y rachas. Completa ejercicios para conseguir skins.</p></div><button class="btn" data-nav="missions">Misiones</button></div>
       ${section('Tu camino musical','Ver lecciones','path')}
       <button class="card path-preview" data-nav="path"><div class="eyebrow">UNIDAD 1 · FUNDAMENTOS</div><div class="mini-track">${preview}</div></button>
       ${section('Tienda de skins','Ver tienda','shop')}
       <div class="reward-banner"><span class="emoji">🛍️</span><div><b>Personaliza tu piano</b><p>Consigue monedas abriendo cofres y cambia los colores de tu teclado.</p></div><button class="btn" data-nav="shop">TIENDA</button></div>
       ${section('Tus recompensas','Ver cofres','rewards')}
-      <div class="reward-banner"><span class="emoji">🎁</span><div><b>${nextChest?`Próximo cofre: ${nextChest.name}`:'¡Todos los cofres conseguidos!'}</b><p>${nextChest?`Completa ${Math.max(0,nextChest.requires-finish)} lecciones más para desbloquearlo.`:'Has abierto toda la colección actual.'}</p></div><button class="btn gold" data-nav="rewards">COFRES</button></div>`;
+      <div class="reward-banner"><span class="emoji">🎁</span><div><b>${nextChest?`Próximo cofre: ${nextChest.name}`:'¡Todos los cofres conseguidos!'}</b><p>${nextChest?`Completa ${chestLessonsLeft} ${chestLessonsLeft===1?'lección':'lecciones'} más para desbloquearlo.`:'Has abierto toda la colección actual.'}</p></div><button class="btn gold" data-nav="rewards">COFRES</button></div>`;
   }
   function lessonRow(l,i){
     const done=state.completed[l.id],locked=isLocked(l),available=isAvailable(i),disabled=!locked&&!available;
     let label=locked?'10 € · PREMIUM':done?'REPETIR':available?'EMPEZAR':'BLOQUEADO';
-    return `<article class="lesson-row ${done?'completed':''} ${available&&!done&&!locked?'current':''} ${locked?'premium-row':''}"><div class="lesson-symbol">${done?'✅':locked?'🔒':l.emoji}</div><div class="lesson-copy"><b>${clean(l.title)}</b><small>${clean(l.subtitle)} · ${l.notes.length} notas</small>${done?`<div class="mini-stars">${'★'.repeat(done.stars)}${'☆'.repeat(3-done.stars)}</div>`:''}</div><button class="btn ${done||disabled?'secondary':''}" ${disabled?'disabled':''} data-lesson="${l.id}">${label}</button></article>`;
+    return `<article class="lesson-row ${done?'completed':''} ${available&&!done&&!locked?'current':''} ${locked?'premium-row':''}"><div class="lesson-symbol">${done?'✅':locked?'🔒':l.emoji}</div><div class="lesson-copy"><b>${clean(l.title)}</b><small><span>${clean(l.subtitle)}</span> · <span>${l.notes.length} notas</span></small>${done?`<div class="mini-stars">${'★'.repeat(done.stars)}${'☆'.repeat(3-done.stars)}</div>`:''}</div><button class="btn ${done||disabled?'secondary':''}" ${disabled?'disabled':''} data-lesson="${l.id}">${label}</button></article>`;
   }
   function path(){return `${heading('Tu camino musical','Aprende con ejercicios cortos y ve desbloqueando el siguiente paso.',`${completedCount()}/${LESSONS.length} LECCIONES`)}
     <div class="path-intro"><div><div class="eyebrow">TU PRIMER GRAN PASO</div><h2>Fundamentos del piano</h2><p>Una nota cada vez. ¡Haz que tu piano suene!</p></div><span class="big-note">🎹</span></div>
     <div class="unit-title">UNIDAD 1 · PRINCIPIANTE · GRATIS</div><div class="lesson-list">${LESSONS.slice(0,5).map((l,i)=>lessonRow(l,i)).join('')}</div>
     <div class="unit-title">UNIDAD 2 · INTERMEDIO · ${premiumAccess()?'ACCESO ESPECIAL':'SONATA COMPLETO'}</div><div class="lesson-list">${LESSONS.slice(5).map((l,i)=>lessonRow(l,i+5)).join('')}</div>
     <div class="notice">🎯 Las notas se verifican usando el teclado en pantalla, un piano MIDI compatible o el micrófono experimental. Las canciones del curso intermedio forman parte de Sonata Completo.</div>`}
-  function songs(){return `${heading('Canciones','Melodías originales para practicar a tu ritmo.',`${SONGS.length} CANCIONES`)}<div class="song-grid">${SONGS.map(s=>`<article class="song-card"><div class="song-art">${s.emoji}</div><div class="song-details"><h3>${clean(s.title)} ${songLocked(s)?'🔒':''}</h3><p>${s.desc}${state.songScores[s.id]?` · ${'★'.repeat(state.songScores[s.id])}`:''}</p><button class="btn ${songLocked(s)?'secondary':''}" data-song="${s.id}">${songLocked(s)?'SONATA COMPLETO · 10 €':'TOCAR →'}</button></div></article>`).join('')}</div>`}
+  function songs(){return `${heading('Canciones','Melodías originales para practicar a tu ritmo.',`${SONGS.length} CANCIONES`)}<div class="song-grid">${SONGS.map(s=>`<article class="song-card"><div class="song-art">${s.emoji}</div><div class="song-details"><h3><span>${clean(s.title)}</span>${songLocked(s)?'<span aria-hidden="true"> 🔒</span>':''}</h3><p><span>${s.desc}</span>${state.songScores[s.id]?`<span> · ${'★'.repeat(state.songScores[s.id])}</span>`:''}</p><button class="btn ${songLocked(s)?'secondary':''}" data-song="${s.id}">${songLocked(s)?'SONATA COMPLETO · 10 €':'TOCAR →'}</button></div></article>`).join('')}</div>`}
   const CHEST_COLORS={common:['#a4b2bd','#7b8997','#536778'],rare:['#7ed1ff','#3998d9','#1b649e'],epic:['#d0a1ff','#9960d6','#603698'],legendary:['#ffdf78','#e4a42e','#ae6f17'],mythic:['#ffafdc','#e75da4','#963e9a']};
   function chestSvg(c,suffix=''){
     const [light,mid,dark]=CHEST_COLORS[c.id],uid='grad-'+c.id+suffix;
     return `<svg viewBox="0 0 130 116" width="115" height="100" role="img" aria-label="Cofre ${c.name}"><defs><linearGradient id="${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${light}"/><stop offset="1" stop-color="${mid}"/></linearGradient></defs><ellipse cx="65" cy="104" rx="47" ry="8" fill="#3c5560" opacity=".13"/><path d="M22 48 L34 18 Q65 4 96 18 L108 48 Z" fill="url(#${uid})" stroke="${dark}" stroke-width="5" stroke-linejoin="round"/><path d="M21 50 H109 V91 Q109 99 101 99 H29 Q21 99 21 91 Z" fill="url(#${uid})" stroke="${dark}" stroke-width="5"/><path d="M32 21 L38 47 M98 21 L92 47" stroke="${dark}" stroke-width="9" opacity=".73"/><path d="M36 53 V94 M94 53 V94" stroke="${dark}" stroke-width="10" opacity=".7"/><path d="M22 52 H108" stroke="#fff" stroke-width="5" opacity=".65"/><rect x="54" y="45" width="22" height="24" rx="5" fill="#fff1b7" stroke="${dark}" stroke-width="3"/><circle cx="65" cy="56" r="4" fill="${dark}"/><path d="M10 23 l4 -9 4 9 9 4 -9 4 -4 9 -4 -9 -9 -4z" fill="${light}"/><path d="M110 12 l3 -6 3 6 6 3 -6 3 -3 6 -3 -6 -6 -3z" fill="${mid}"/></svg>`;
   }
   function chestCard(c){const opened=state.chests[c.id],unlocked=completedCount()>=c.requires;
-    return `<article class="chest-card ${c.id}"><div class="chest-rarity">${clean(c.name.toUpperCase())}</div><div class="chest-visual">${opened?'🏆':chestSvg(c)}</div><h3>Cofre ${clean(c.name.toLowerCase())}</h3><p>${clean(c.desc)}</p><div class="meta">${opened?`Conseguiste ${opened.xp} XP y ${opened.coins} monedas`:`Se desbloquea al completar ${c.requires} ${c.requires===1?'lección':'lecciones'}`}</div><button class="btn" data-chest="${c.id}" ${(!unlocked||opened)?'disabled':''}>${opened?'✓ ABIERTO':unlocked?'ABRIR COFRE':'🔒 AÚN BLOQUEADO'}</button></article>`}
+    return `<article class="chest-card ${c.id}"><div class="chest-rarity">${clean(c.name)}</div><div class="chest-visual">${opened?'🏆':chestSvg(c)}</div><h3>Cofre ${clean(c.name.toLowerCase())}</h3><p>${clean(c.desc)}</p><div class="meta">${opened?`Conseguiste ${opened.xp} XP y ${opened.coins} monedas`:`Se desbloquea al completar ${c.requires} ${c.requires===1?'lección':'lecciones'}`}</div><button class="btn" data-chest="${c.id}" ${(!unlocked||opened)?'disabled':''}>${opened?'✓ ABIERTO':unlocked?'ABRIR COFRE':'🔒 AÚN BLOQUEADO'}</button></article>`}
   function rewards(){return `${heading('Tus cofres','Cuanto más aprendes, mejores recompensas consigues.',`🪙 ${state.coins} MONEDAS`)}<div class="path-intro"><div><div class="eyebrow">RECOMPENSAS SONATA</div><h2>¡Toca, aprende y descubre!</h2><p>Hay cinco rarezas. Los cofres se abren una sola vez en este MVP y los premios se guardan en tu dispositivo.</p></div><span class="big-note">🎁</span></div><button class="btn secondary" data-nav="missions" style="margin:0 0 14px">🎯 VER MISIONES Y GANAR MONEDAS</button>${section('Colección de cofres')}<div class="chest-grid">${CHESTS.map(chestCard).join('')}</div><p class="footer-note">Los cofres no contienen compras, dinero real ni acceso Premium.</p>`}
   function skinPreview(skin){return `<div class="skin-preview ${skin.id}" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><i></i><i></i><i></i></div>`}
   function shop(){return `${heading('Tienda de Sonata','Compra aspectos con monedas ganadas jugando.',`🪙 ${state.coins} MONEDAS`)}
@@ -222,13 +244,12 @@
           <button class="btn ${equipped?'secondary':''}" data-badge-equip="${a.id}" ${unlocked?'':'disabled'}>${equipped?'✓ EN TU PERFIL':unlocked?'MOSTRAR EN PERFIL':'POR CONSEGUIR'}</button></article>`;
       }).join('')}</div>`;
   }
-  function profile(){const free=premiumAccess();return `${heading('Tu perfil','Tu progreso y los ajustes de Sonata.')}<div class="profile-card"><h2>👤 Tu cuenta (modo prueba)</h2><p>Escribe un correo para simular una cuenta. No se envía ningún mensaje ni se verifica la propiedad de la dirección: todavía no hay inicio de sesión real.</p><form id="emailForm" class="field-row"><input type="email" id="emailInput" required autocomplete="email" placeholder="tu@email.com" value="${clean(state.email)}" aria-label="Correo de cuenta"><button class="btn" type="submit">GUARDAR</button></form><span class="badge">${free?'Sonata Completo · Acceso de prueba':'Plan principiante · Gratis'}</span></div>
-      <div class="profile-card"><h2>📊 Tus estadísticas</h2><p><strong>${completedCount()}</strong> lecciones completas · <strong>${state.xp}</strong> XP · <strong>${state.coins}</strong> monedas · <strong>${Object.keys(state.chests).length}</strong> cofres abiertos</p><button class="btn secondary" data-nav="path">VER CAMINO MUSICAL</button> <button class="btn secondary" data-nav="shop">🛍️ TIENDA DE SKINS</button> <button class="btn secondary" data-nav="missions">🎯 MISIONES</button></div>
+  function profile(){return `${heading('Tu perfil','Tu progreso y los ajustes de Sonata.')}<div class="profile-card"><h2>👤 Tu cuenta (modo prueba)</h2><p>Escribe un correo para simular una cuenta. No se envía ningún mensaje ni se verifica la propiedad de la dirección: todavía no hay inicio de sesión real. El correo no desbloquea lecciones ni canciones.</p><form id="emailForm" class="field-row"><input type="email" id="emailInput" required autocomplete="email" placeholder="tu@email.com" value="${clean(state.email)}" aria-label="Correo de cuenta"><button class="btn" type="submit">GUARDAR</button></form><span class="badge">Plan principiante · Gratis</span></div>
+      <div class="profile-card"><h2>📊 Tus estadísticas</h2><p><strong>${completedCount()}</strong> <span>lecciones completas</span> · <strong>${state.xp}</strong> XP · <strong>${state.coins}</strong> <span>monedas</span> · <strong>${Object.keys(state.chests).length}</strong> <span>cofres abiertos</span></p><button class="btn secondary" data-nav="path">VER CAMINO MUSICAL</button> <button class="btn secondary" data-nav="shop">🛍️ TIENDA DE SKINS</button> <button class="btn secondary" data-nav="missions">🎯 Misiones</button></div>
       <div class="profile-card"><h2>🏅 Tus insignias</h2><p>Elige una insignia ganada para lucirla en tu perfil.</p>${achievementCards()}</div>
-      <div class="profile-card"><h2>👑 Propietario de Sonata</h2><p>El correo del propietario dispone de acceso de prueba al curso completo y puede añadir otro correo autorizado.</p>${state.email===OWNER_EMAIL?`<div class="owner-tools"><h3>Herramienta especial · Demostración</h3><form id="inviteForm" class="field-row"><input type="email" id="inviteInput" required placeholder="otro@email.com" aria-label="Nuevo correo autorizado"><button class="btn" type="submit">AUTORIZAR</button></form><p>Direcciones autorizadas en este dispositivo: ${state.invites.length?state.invites.map(clean).join(', '):'ninguna'}</p></div>`:`<div class="notice">El panel especial aparece al introducir el correo propietario. Esta identificación es solo una simulación local y NO es segura.</div>`}</div>
       <div class="profile-card"><h2>⚙️ Pruebas</h2><p>Se guardan tus datos con el almacenamiento de este navegador. Si borras los datos del sitio, se perderá el progreso.</p><button class="btn ghost" id="resetProgress">BORRAR PROGRESO DE PRUEBA</button></div>
       <p class="footer-note">MVP de evaluación. Sin cuentas verificadas, pagos operativos ni sincronización entre dispositivos.</p>`}
-  function paywall(){return `${heading('Sonata Completo','El siguiente paso de tu camino musical.')}<div class="paywall"><div class="lock">🔐</div><div class="eyebrow">NIVEL INTERMEDIO Y CANCIONES</div><h1>Desbloquea todo Sonata</h1><div class="price">10 €</div><p>Precio previsto de un único pago. Incluye las lecciones intermedias y todas las canciones de esta versión.</p><button class="btn" id="fakeCheckout">COMPRA NO DISPONIBLE EN EL MVP</button><p class="small-print">No se realiza ningún cobro. Antes de vender habrá que integrar pagos reales y verificar permisos en un servidor.</p><button class="text-action" data-nav="profile">¿Tienes acceso especial? Ir al perfil ›</button></div>`}
+  function paywall(){return `${heading('Sonata Completo','El siguiente paso de tu camino musical.')}<div class="paywall"><div class="lock">🔐</div><div class="eyebrow">NIVEL INTERMEDIO Y CANCIONES</div><h1>Desbloquea todo Sonata</h1><div class="price">10 €</div><p>Precio previsto de un único pago. Incluye las lecciones intermedias y todas las canciones de esta versión.</p><button class="btn" id="fakeCheckout">COMPRA NO DISPONIBLE EN EL MVP</button><p class="small-print">No se realiza ningún cobro. Antes de vender habrá que integrar pagos reales y verificar permisos en un servidor.</p></div>`}
   function getLesson(id){return LESSONS.find(l=>l.id===id)}
   function getSong(id){return SONGS.find(s=>s.id===id)}
   function startActivity(type,id){
@@ -271,7 +292,7 @@
       <circle cx="${f.x}" cy="${f.y}" r="${active?15:12}" fill="${active?'#1686d9':'#dfe8ef'}" stroke="white" stroke-width="2"/>
       <text x="${f.x}" y="${f.y+4.5}" text-anchor="middle" font-size="13" font-weight="bold" fill="${active?'white':'#647f91'}">${i+1}</text></g>`;
     }).join('');
-    return `<div class="finger-training" id="fingerTraining"><div class="hand-graphic ${hand==='left'?'left-hand':''}" aria-hidden="true"><svg viewBox="0 0 190 125" role="presentation"><path d="M54 103 Q55 82 76 78 L128 80 Q145 90 138 117 L67 117 Z" fill="#dfe8ef" stroke="#bdcbd8" stroke-width="2" />${fingers}</svg></div><div class="finger-training-copy"><b>${hand==='right'?'🤚 Mano derecha':'✋ Mano izquierda'} · dedo <span id="suggestedFinger">${hand==='right'?info.finger:6-info.finger}</span></b><span id="fingerPosition">Posición: ${info.position.name} · pulgar en ${LETTER[info.position.base]} (${info.position.base.replace('5',' agudo')})</span><small>La mano semitransparente indica la posición; sigue el dedo iluminado sobre la tecla.</small></div></div>`;
+    return `<div class="finger-training" id="fingerTraining"><div class="hand-graphic ${hand==='left'?'left-hand':''}" aria-hidden="true"><svg viewBox="0 0 190 125" role="presentation"><path d="M54 103 Q55 82 76 78 L128 80 Q145 90 138 117 L67 117 Z" fill="#dfe8ef" stroke="#bdcbd8" stroke-width="2" />${fingers}</svg></div><div class="finger-training-copy"><b>${hand==='right'?'🤚 Mano derecha':'✋ Mano izquierda'} · dedo ${info.finger}</b><span id="fingerPosition">Posición: ${info.position.name} · pulgar en ${LETTER[info.position.base]} (${info.position.base.replace('5',' agudo')})</span><small>La mano semitransparente indica la posición; sigue el dedo iluminado sobre la tecla.</small></div></div>`;
   }
   function updateFingerGuide(note){
     const current=document.getElementById('fingerTraining');
@@ -281,7 +302,7 @@
       const isTarget=key.dataset.note===note;
       key.classList.toggle('guide-target',isTarget);
       const old=key.querySelector('.finger-marker');if(old)old.remove();
-      if(isTarget){const circle=document.createElement('span');circle.className='finger-marker';circle.textContent=String(activeHand()==='left'?6-fingeringFor(note).finger:fingeringFor(note).finger);circle.setAttribute('aria-label','Dedo recomendado '+circle.textContent);key.append(circle)}
+      if(isTarget){const circle=document.createElement('span');circle.className='finger-marker';circle.textContent=String(fingeringFor(note).finger);circle.setAttribute('aria-label','Dedo recomendado '+circle.textContent);key.append(circle)}
     });
   }
   function handOverlay(note){
@@ -310,7 +331,7 @@
       const knuckle=palmX+(i-2)*24;
       const y=tipY[i];
       const thickness=i===0?51:42;
-      const fingerNumber=left?5-i:i+1;
+      const fingerNumber=i+1;
       return `<g class="hand-finger ${active?'finger-lit':''}">
         <path d="M ${knuckle.toFixed(1)} 226 Q ${x.toFixed(1)} 197 ${x.toFixed(1)} ${y.toFixed(1)}" fill="none" stroke="#9b624b" stroke-opacity=".29" stroke-width="${thickness+5}" stroke-linecap="round"/>
         <path d="M ${knuckle.toFixed(1)} 226 Q ${x.toFixed(1)} 197 ${x.toFixed(1)} ${y.toFixed(1)}" fill="none" stroke="${skinFill}" stroke-width="${thickness}" stroke-linecap="round"/>
@@ -348,9 +369,9 @@
       return `<g class="score-note ${i<activity.index?'scored':''} ${i===activity.index?'score-current':''}" data-score-index="${i}">
         ${i===activity.index?`<rect x="${x-30}" y="11" width="60" height="106" rx="9" fill="#d8f3e9" opacity=".84"/>`:''}
         ${i%4===0&&i!==0?`<line x1="${x-37}" x2="${x-37}" y1="30" y2="94" stroke="#aec0cc"/>`:''}
-        ${y===104?`<line x1="${x-17}" x2="${x+18}" y1="104" y2="104" stroke="#58788d" stroke-width="2"/>`:''}
+        ${ledgerLines(y,x-17,x+18)}
         <ellipse cx="${x}" cy="${y}" rx="10.7" ry="7.1" transform="rotate(-18 ${x} ${y})" fill="${i===activity.index?'#0d83cd':i<activity.index?'#6ec6ac':'#2e4457'}"/>
-        <line x1="${x+9}" y1="${y-1}" x2="${x+9}" y2="${y-33}" stroke="${i===activity.index?'#0d83cd':'#2e4457'}" stroke-width="2.3"/>
+        <line x1="${y>62?x+9:x-9}" y1="${y>62?y-1:y+1}" x2="${y>62?x+9:x-9}" y2="${y>62?y-33:y+33}" stroke="${i===activity.index?'#0d83cd':'#2e4457'}" stroke-width="2.3"/>
         <text x="${x}" y="123" text-anchor="middle" font-size="13" font-weight="800" fill="#466c85">${LETTER[n]}</text>
       </g>`;
     }).join('');
@@ -380,11 +401,11 @@
     <section class="lesson-stage" id="lessonStage">
       <div class="target-display"><div class="note-label">TOCA ESTA NOTA</div><div class="target-note" id="targetNote">${prettyName(target)}</div></div>
       <div class="staff" id="staffDrawing">${staffDrawing(target)}</div>
+      <div class="lesson-feedback" id="lessonFeedback" role="status" aria-live="polite">🎹 Esperando una nota · toca o activa el micrófono</div>
+      ${keyboard()}
       ${scoreTimeline()}
       <p class="lesson-help">${activity.type==='lesson'?clean(getLesson(activity.id).tip):(getSong(activity.id).keyboard==='birthday'?'Cumpleaños feliz: toca las letras G, A, B, C, D, E y F en orden.':'Sigue las notas de la canción, una por una.')}</p>
       ${fingerDiagram(target)}
-      ${keyboard()}
-      <div class="lesson-feedback" id="lessonFeedback" role="status" aria-live="polite">🎹 Esperando una nota · toca o activa el micrófono</div>
     </section>
     <div class="lesson-controls"><button class="btn secondary" id="hearTarget">🔊 ESCUCHAR NOTA</button><button class="btn secondary" id="demoSequence">▶ ESCUCHAR FRAGMENTO</button><button class="btn ghost" id="toggleLoop" aria-pressed="${activity.loopEnabled}">⟳ ${activity.loopEnabled?'QUITAR BUCLE':'REPETIR 4 NOTAS'}</button><button class="btn ghost" id="enableMic">🎤 ACTIVAR MICRÓFONO</button><button class="btn ghost" id="enableMidi">🎹 MIDI</button></div>
     <div class="source-status" id="sourceStatus">Puedes tocar el teclado de pantalla. Para reconocer tu piano físico activa el micrófono o conecta MIDI.</div>
@@ -392,7 +413,7 @@
   }
   function progressBarActivity(percent){return `<div class="lesson-progress" aria-label="Progreso del ejercicio"><span id="activityBar" style="width:${percent}%"></span></div>`}
   function resultPage(){if(!activity)return home();const count=activity.notes.length,accuracy=Math.round(activity.correct/Math.max(1,activity.attempts)*100);const stars=accuracy>=95?3:accuracy>=75?2:1;const isLesson=activity.type==='lesson',data=isLesson?getLesson(activity.id):getSong(activity.id);
-    return `<div class="result"><div class="result-burst">🎉</div><h1>¡${isLesson?'Lección':'Canción'} completada!</h1><p>¡Has llegado hasta la última nota!</p><div class="stars" aria-label="${stars} estrellas">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</div><div class="result-stats"><div><strong>${accuracy}%</strong><small>Precisión</small></div><div><strong>${count}</strong><small>Notas correctas</small></div><div><strong>+${activity.awardedXP||0}</strong><small>XP nuevos</small></div></div><p>${activity.awardedCoins?`🪙 +${activity.awardedCoins} monedas por practicar hoy. `:''}${activity.newChest?'🎁 ¡Has desbloqueado un cofre! Ve a Recompensas para abrirlo.':'Mejora tus estrellas repitiendo la actividad.'}</p><div class="actions"><button class="btn secondary" id="retryActivity">REPETIR</button><button class="btn" data-nav="${isLesson?'path':'songs'}">CONTINUAR →</button>${activity.newChest?'<button class="btn gold" data-nav="rewards">VER COFRES</button>':''}</div></div>`}
+    return `<div class="result"><div class="result-burst">🎉</div><h1>¡${isLesson?'Lección':'Canción'} completada!</h1><p>¡Has llegado hasta la última nota!</p><div class="stars" aria-label="${stars} ${stars===1?'estrella':'estrellas'}">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</div><div class="result-stats"><div><strong>${accuracy}%</strong><small>Precisión</small></div><div><strong>${count}</strong><small>Notas correctas</small></div><div><strong>+${activity.awardedXP||0}</strong><small>XP nuevos</small></div></div><p>${activity.awardedCoins?`<span>🪙 +${activity.awardedCoins} monedas por practicar hoy.</span> `:''}<span>${activity.newChest?'🎁 ¡Has desbloqueado un cofre! Ve a Recompensas para abrirlo.':'Mejora tus estrellas repitiendo la actividad.'}</span></p><div class="actions"><button class="btn secondary" id="retryActivity">REPETIR</button><button class="btn" data-nav="${isLesson?'path':'songs'}">CONTINUAR →</button>${activity.newChest?'<button class="btn gold" data-nav="rewards">VER COFRES</button>':''}</div></div>`}
   function navigate(next){
     if(next!=='play'&&next!=='result')stopInputs();
     route=next;
@@ -591,20 +612,22 @@
     if(e.target.closest('#dismissPrize')){dismissPrize();return}
     if(e.target.closest('#retryActivity')&&activity){startActivity(activity.type,activity.id);return}
     if(e.target.closest('#fakeCheckout')){toast('Todavía no se realizan pagos en el MVP.');return}
-    if(e.target.closest('#resetProgress')){if(confirm('¿Quieres borrar todo el progreso guardado en este dispositivo?')){state=defaultState();save();navigate('home');toast('Progreso de prueba borrado.')}return}
+    if(e.target.closest('#resetProgress')){const ask='¿Quieres borrar todo el progreso guardado en este dispositivo?';if(confirm(window.SonataI18n?window.SonataI18n.translate(ask):ask)){state=defaultState();save();navigate('home');toast('Progreso de prueba borrado.')}return}
   });
   document.addEventListener('submit',e=>{
     if(e.target.id==='emailForm'){e.preventDefault();state.email=normalize(document.getElementById('emailInput').value);save();navigate('profile');toast('Correo de prueba guardado en este dispositivo.');return}
-    if(e.target.id==='inviteForm'){e.preventDefault();if(state.email!==OWNER_EMAIL)return;const email=normalize(document.getElementById('inviteInput').value);if(!email||email===OWNER_EMAIL){toast('Introduce otra dirección válida.');return}if(!state.invites.includes(email))state.invites.push(email);save();navigate('profile');toast('Correo autorizado en este dispositivo (modo prueba).')}
   });
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'){dismissPrize();return}
     if(route!=='play'||e.repeat||['INPUT','TEXTAREA'].includes(document.activeElement.tagName))return;
-    const map={c:'Do',d:'Re',e:'Mi',f:'Fa',g:'Sol',a:'La',b:'Si',8:'Do5'};
-    const note=map[e.key.toLowerCase()];if(note){e.preventDefault();handleNote(note)}
+    // Home row matches the README: A=C4 … K=C5. L ; ' ] continue through G5.
+    // C, E, B and 8 repeat pitches that do not collide with that row.
+    const map={a:'Do',s:'Re',d:'Mi',f:'Fa',g:'Sol',h:'La',j:'Si',k:'Do5',l:'Re5',';':'Mi5',"'":'Fa5',']':'Sol5',c:'Do',e:'Mi',b:'Si','8':'Do5'};
+    const note=e.key.length===1?map[e.key.toLowerCase()]:undefined;if(note){e.preventDefault();handleNote(note)}
   });
   if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
     window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(err=>console.warn('SW:',err)));
   }
+  if(storedSkinsNeedCleanup())save();
   syncHeader();navigate('home');document.documentElement.classList.add('sonata-interactiva');
 })();

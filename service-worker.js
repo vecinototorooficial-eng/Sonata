@@ -1,4 +1,4 @@
-const CACHE = 'sonata-mvp-v13';
+const CACHE = 'sonata-mvp-v14';
 const ASSETS = ['./','./index.html','./styles.css','./app.js','./i18n.js','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png','./icons/mano-superpuesta.webp'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));

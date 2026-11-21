@@ -4,19 +4,19 @@ Aplicación web progresiva (PWA) diseñada para probarse en Android, iPhone y Ch
 
 ## Qué funciona
 - 8 lecciones secuenciales, 5 de principiante y 3 de nivel intermedio.
-- Teclado en pantalla con sonido y validación de notas; teclado de ordenador con A S D F G H J K.
+- Teclado en pantalla con sonido y validación de notas. En un teclado QWERTY, la fila central toca las blancas: A S D F G H J K = Do Re Mi Fa Sol La Si Do (C4 a C5). Las notas agudas de Cumpleaños feliz siguen en L ; ' ] = Re Mi Fa Sol (D5 a G5). También valen, porque no chocan con esa fila, C (Do), E (Mi), B (Si) y 8 (Do agudo).
 - Micrófono experimental (necesita HTTPS y permisos), y Web MIDI si está disponible y hay piano compatible.
 - Resultado por precisión con 1, 2 o 3 estrellas, XP al completar por primera vez una lección.
 - 4 canciones de práctica originales (2 gratuitas, 2 de nivel intermedio).
 - 5 cofres de rarezas, desbloqueados al completar 1, 2, 4, 6 y 8 lecciones. Cada cofre se abre una sola vez. XP y monedas se guardan en el navegador.
 - Progreso conservado con localStorage del dispositivo.
 - Pantalla de Sonata Completo a 10 € **sin cobro operativo**.
-- Perfil de prueba: el correo propietario tiene acceso local de demostración y puede añadir direcciones locales de prueba.
+- Perfil de prueba: se puede guardar un correo solo en este dispositivo. No inicia sesión ni desbloquea contenido.
 - Manifest, iconos y service worker para instalación y funcionamiento básico sin conexión tras la primera carga.
 
 ## Lo que NO funciona aún
 - Compras y pagos reales. No introduzcas datos de tarjetas: no hay checkout.
-- Identidad validada: escribir cualquier correo no demuestra ser su titular. La herramienta de propietario **NO** es segura hasta integrar login y backend.
+- Identidad validada y acceso Premium real. Esta versión pública no incluye un desbloqueo por correo.
 - Sincronización entre dispositivos, gestión de usuarios, revisión de compras y restauración.
 - Análisis profesional del ritmo, manos o calidad de interpretación.
 - Detección de micrófono garantizada: está en fase **experimental** y depende del entorno, dispositivo y navegador.
@@ -41,7 +41,7 @@ Dentro de esta carpeta ejecuta `python -m http.server 8080`, y visita `http://lo
 3. En Recompensas abre el cofre común. Comprueba que solo puede abrirse una vez.
 4. Actualiza la página y comprueba que el progreso sigue guardado.
 5. Abre un contenido intermedio: debe aparecer Sonata Completo (10 €, sin cobro).
-6. En Perfil puedes simular el correo autorizado para probar la ruta Premium (NO autenticación real).
+6. En Perfil puedes guardar un correo local. No desbloquea el nivel intermedio: ese contenido sigue mostrando Sonata Completo a 10 €, sin cobro.
 7. En un móvil prueba también orientación vertical, teclado táctil y, con HTTPS, permisos del micrófono.
 
 ## Archivo de prueba directa

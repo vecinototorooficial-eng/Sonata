@@ -186,3 +186,50 @@ html[data-skin="rainbow"] .practice-keyboard .white-key:nth-child(5n+5){backgrou
 .language-toggle{border:1px solid #cce4f6;background:#eef8ff;color:#176fae;font-size:12px;font-weight:800;padding:8px 10px;border-radius:18px;min-width:91px;white-space:nowrap;cursor:pointer;touch-action:manipulation}
 .language-toggle:focus-visible{outline:3px solid #f4ad43;outline-offset:2px}
 @media(max-width:390px){.language-toggle{font-size:11px;min-width:84px;padding:7px}.top-right{gap:7px}}
+
+/* V14: staff, feedback and keyboard stay in the first viewport. */
+@media (orientation:portrait) and (max-width:700px){
+  body:has(.lesson-stage) main{padding-top:8px;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+  body:has(.lesson-stage) .lesson-top{gap:8px}
+  body:has(.lesson-stage) .lesson-header{margin-bottom:4px}
+  body:has(.lesson-stage) .lesson-header h1{font-size:16px}
+  body:has(.lesson-stage) .lesson-header p{margin:0;font-size:10px}
+  body:has(.lesson-stage) .small-settings{padding:6px 8px}
+  body:has(.lesson-stage) .lesson-stage{min-height:0;margin-top:6px;padding:8px 8px 6px;justify-content:flex-start;gap:2px}
+  body:has(.lesson-stage) .note-label{font-size:9px;letter-spacing:.4px}
+  body:has(.lesson-stage) .target-note{font-size:28px;margin:0;line-height:1.05}
+  body:has(.lesson-stage) .staff{height:72px;margin:0 auto;width:min(100%,300px)}
+  body:has(.lesson-stage) .music-staff-svg{height:72px}
+  body:has(.lesson-stage) #lessonFeedback{min-height:0;margin:2px 0 4px;padding:4px 8px;font-size:12px}
+  body:has(.lesson-stage) .keyboard-guide{margin:0 auto 2px;font-size:10px}
+  body:has(.lesson-stage) .practice-keyboard{height:108px;margin:0 auto}
+  body:has(.lesson-stage) .practice-keyboard .white-key{padding-bottom:6px}
+  body:has(.lesson-stage) .practice-keyboard .white-key .key-letter{font-size:14px}
+  body:has(.lesson-stage) .practice-keyboard .finger-marker{width:22px;height:22px;font-size:12px;top:70%}
+  body:has(.lesson-stage) .score-timeline{height:58px;margin:4px auto 2px}
+  body:has(.lesson-stage) .score-timeline svg{height:58px}
+  body:has(.lesson-stage) .lesson-help{margin:0;font-size:10px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+  body:has(.lesson-stage) .finger-training{min-height:0;max-height:44px;margin:3px auto 0;padding:2px 8px;overflow:hidden}
+  body:has(.lesson-stage) .hand-graphic{width:42px;flex-basis:42px}
+  body:has(.lesson-stage) .hand-graphic svg{max-height:38px}
+  body:has(.lesson-stage) .finger-training-copy small{display:none}
+  body:has(.lesson-stage) .finger-training-copy b,body:has(.lesson-stage) .finger-training-copy span{font-size:10px;line-height:1.2}
+  body:has(.lesson-stage) .lesson-controls{margin:6px auto 0;gap:4px}
+  body:has(.lesson-stage) .lesson-controls .btn{font-size:9px;padding:6px 7px}
+  body:has(.lesson-stage) .source-status{font-size:9px;margin-top:2px}
+}
+@media (min-width:1000px) and (max-height:860px){
+  body:has(.lesson-stage) main{padding-top:12px;padding-bottom:calc(82px + env(safe-area-inset-bottom))}
+  body:has(.lesson-stage) .lesson-header{margin-bottom:4px}
+  body:has(.lesson-stage) .lesson-stage{min-height:0;margin-top:8px;padding:10px 14px;justify-content:flex-start;gap:4px}
+  body:has(.lesson-stage) .target-note{font-size:36px;margin:0}
+  body:has(.lesson-stage) .staff{height:86px;margin:0 auto}
+  body:has(.lesson-stage) .music-staff-svg{height:86px}
+  body:has(.lesson-stage) #lessonFeedback{min-height:0;margin:2px 0 4px;padding:4px 10px}
+  body:has(.lesson-stage) .practice-keyboard{height:128px}
+  body:has(.lesson-stage) .score-timeline{height:70px;margin:4px auto}
+  body:has(.lesson-stage) .score-timeline svg{height:70px}
+  body:has(.lesson-stage) .lesson-help{margin:0}
+  body:has(.lesson-stage) .finger-training{min-height:0;max-height:64px;margin:2px auto 0}
+  body:has(.lesson-stage) .lesson-controls{margin:8px auto 0}
+}
