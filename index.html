@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="description" content="Sonata: aprende piano con lecciones interactivas, canciones y recompensas.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Sonata">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="icon" href="./icons/favicon.png" type="image/png">
+<link rel="stylesheet" href="./styles.css">
+<title>Sonata — Aprende piano</title>
+<noscript><style>.offline-preview{display:block}</style></noscript>
+<style>
+/* Fallback visible cuando Android abre el archivo sin ejecutar JavaScript. */
+html:not(.sonata-interactiva) .bottom-nav{display:none!important}
+html:not(.sonata-interactiva) .brand,html:not(.sonata-interactiva) .top-avatar{pointer-events:none}
+.fallback-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;margin:18px 0}
+.fallback-actions a{display:inline-block;border:0;border-radius:11px;padding:11px 14px;background:#1686d9;color:#fff;text-decoration:none;font-size:13px;font-weight:800}
+.fallback-actions a:nth-child(2){background:#7b64b1}
+.fallback-actions a:nth-child(3){background:#b7832c}
+.fallback-section{scroll-margin-top:75px;margin:14px 0;padding:15px;border:1px solid #dfeaf2;border-radius:13px;background:#fff;text-align:left}
+.fallback-section h2{font-size:16px;margin:0 0 6px}
+.fallback-section p{font-size:12px;margin:0;color:#68869b}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <button class="brand" data-nav="home" aria-label="Sonata, ir al inicio"><span class="brand-icon">♫</span><span>sonata</span></button>
+    <div class="top-right"><span class="top-xp"><span aria-hidden="true">✦</span> <b id="topXP">0</b> XP</span><button class="top-avatar" data-nav="profile" aria-label="Ir al perfil">P</button></div>
+  </header>
+  <main id="mainContent" tabindex="-1">
+<section class="offline-preview" aria-label="Inicio de Sonata">
+  <div style="max-width:640px;margin:26px auto;padding:22px;border:1px solid #dceaf4;border-radius:20px;background:#f7fbff;text-align:center">
+    <div style="font-size:44px">🎹</div>
+    <h1 style="font-size:24px;margin:10px 0;color:#195e98">¡Bienvenido a Sonata!</h1>
+    <p style="color:#617f98;line-height:1.5">Tu aplicación para aprender piano, completar lecciones y ganar cofres.</p>
+    <p style="margin:18px 0;color:#496d89;font-size:13px"><strong>Este visor no ha iniciado la parte interactiva.</strong> Para usar las lecciones y los cofres descarga la aplicación y ábrela en Chrome, Safari o Edge como página web. En Android, la vista previa del archivo también puede bloquear JavaScript: para probarla con fiabilidad conviene publicarla en HTTPS.</p>
+    <div style="padding:10px;background:white;border-radius:12px;font-size:13px">♫ 8 lecciones · ⭐ Estrellas y XP · 🎁 5 cofres</div>
+    <div class="fallback-actions" aria-label="Vistas previas"><a href="#sonata-cursos">🎹 Ver lecciones</a><a href="#sonata-canciones">♫ Canciones</a><a href="#sonata-cofres">🎁 Ver cofres</a></div>
+    <div style="background:#fff3da;padding:12px;border-radius:12px;font-size:12px;color:#785f28;text-align:left"><strong>Atención:</strong> Si ves este aviso, este visor no ha iniciado el juego. Los enlaces de arriba enseñan una vista estática. Para jugar y ganar XP necesitas abrir Sonata en un navegador que ejecute JavaScript. Si Chrome tampoco funciona al abrir un archivo descargado, hay que publicar la app en una dirección HTTPS.</div>
+    <section id="sonata-cursos" class="fallback-section"><h2>🎹 Lecciones</h2><p>Conoce el piano · Tus primeras notas · Encuentra el Do · El primer ritmo · Tu primera melodía. Para tocarlas, abre la app en Chrome desde una dirección HTTPS.</p></section>
+    <section id="sonata-canciones" class="fallback-section"><h2>♫ Canciones</h2><p>Paseo de Do · Brisa azul · Camino al sol · Estrellas Sonata. La reproducción funciona en el modo interactivo.</p></section>
+    <section id="sonata-cofres" class="fallback-section"><h2>🎁 Cofres</h2><p>Común · Raro · Épico · Legendario · Mítico. Las recompensas necesitan el modo interactivo para guardar tu progreso.</p></section>
+  </div>
+</section>
+</main>
+  <nav class="bottom-nav" aria-label="Navegación principal">
+    <button data-nav="home" class="nav-item selected"><span class="nav-icon">⌂</span><span>Inicio</span></button>
+    <button data-nav="path" class="nav-item"><span class="nav-icon">♬</span><span>Aprender</span></button>
+    <button data-nav="songs" class="nav-item"><span class="nav-icon">♫</span><span>Canciones</span></button>
+    <button data-nav="rewards" class="nav-item"><span class="nav-icon">✦</span><span>Cofres</span></button>
+    <button data-nav="profile" class="nav-item"><span class="nav-icon">◯</span><span>Perfil</span></button>
+  </nav>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="overlay" id="rewardOverlay" aria-hidden="true"></div>
+</div>
+<script defer src="./app.js"></script>
+</body>
+</html>
