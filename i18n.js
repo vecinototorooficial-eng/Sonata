@@ -239,6 +239,8 @@
   "⟳ REPETIR 4 NOTAS": "⟳ LOOP 4 NOTES",
   "🎤 ACTIVAR MICRÓFONO": "🎤 ENABLE MICROPHONE",
   "Puedes tocar el teclado de pantalla. Para reconocer tu piano físico activa el micrófono o conecta MIDI.": "Play the on-screen keyboard. To detect a physical piano, enable the microphone or connect MIDI.",
+  "Letras del ordenador: C Do, D Re, E Mi, F Fa, G Sol, A La, B Si. La letra sigue la nota esperada; Mayús o 8 suben la octava.": "Computer letters: C Do, D Re, E Mi, F Fa, G Sol, A La, B Si. The letter follows the expected note; Shift or 8 raises the octave.",
+  "Teclado del ordenador: C D E F G A B. Si la nota esperada es aguda, esa letra la toca. Mayús+letra fuerza la octava 5 y 8 es Do agudo. La pantalla, el micrófono y MIDI también valen.": "Computer keyboard: C D E F G A B. If the expected note is high, that letter plays it. Shift+letter forces octave 5 and 8 is high C. The screen, microphone and MIDI work too.",
   "Salir de la lección": "Leave lesson",
   "Cambiar mano": "Change hand",
   "¡Lección completada!": "Lesson complete!",
