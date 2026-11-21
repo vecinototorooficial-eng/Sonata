@@ -136,7 +136,13 @@
   "Personaliza tu piano": "Customize your piano",
   "Consigue monedas abriendo cofres y cambia los colores de tu teclado.": "Earn coins from chests and change your keyboard colors.",
   "TIENDA": "SHOP",
+  "Tienda de Sonata": "Sonata shop",
+  "Progreso del curso": "Course progress",
+  "Progreso del ejercicio": "Exercise progress",
+  "Recompensa": "Reward",
+  "· Desde Sol4 hasta Sol5": "· From G4 to G5",
   "Tus recompensas": "Your rewards",
+  "Tus cofres": "Your chests",
   "Ver cofres": "View chests",
   "¡Todos los cofres conseguidos!": "All chests collected!",
   "Has abierto toda la colección actual.": "You have opened the entire current collection.",
@@ -267,6 +273,7 @@
   "Correo autorizado en este dispositivo (modo prueba).": "Email authorized on this device (demo only).",
   "Progreso de prueba borrado.": "Demo progress reset.",
   "Lecciones completas": "Completed lessons",
+  "lecciones completas": "completed lessons",
   "MONEDAS": "COINS",
   "LECCIONES": "LESSONS",
   "CANCIONES": "SONGS",
@@ -292,7 +299,55 @@
   "🎹 Ver lecciones": "🎹 View lessons",
   "♫ Canciones": "♫ Songs",
   "🎁 Ver cofres": "🎁 View chests",
-  "Atención:": "Notice:"
+  "Atención:": "Notice:",
+  "Practica nota a nota y consigue estrellas.": "Practice one note at a time and earn stars.",
+  "Completada": "Done",
+  "Siguiente": "Next",
+  "10 € · PREMIUM": "€10 · PREMIUM",
+  "Repitiendo este fragmento de 4 notas.": "Looping this 4-note phrase.",
+  "Necesitas más monedas. ¡Practica a diario y abre cofres!": "You need more coins. Practice daily and open chests!",
+  "Cumpleaños feliz: toca las letras G, A, B, C, D, E y F en orden.": "Happy Birthday: play G, A, B, C, D, E and F in order.",
+  "Sigue las notas de la canción, una por una.": "Follow the notes of the song, one by one.",
+  "💡 Completar una actividad también cuenta para tu racha y para el desbloqueo por días de práctica de la tienda. Cada misión solo da monedas una vez por periodo. Los premios no tienen valor monetario real.": "💡 Completing an activity also counts toward your streak and the shop’s practice-day unlocks. Each mission pays coins only once per period. Rewards have no real cash value.",
+  "Partitura con todas las notas de la actividad": "Sheet music for every note in this activity",
+  "Elige tu modo de manos": "Choose your hand",
+  "Correo de cuenta": "Account email",
+  "Sonata, ir al inicio": "Sonata, go to home",
+  "Ir al perfil": "Go to profile",
+  "Navegación principal": "Main navigation",
+  "Inicio de Sonata": "Sonata home",
+  "Vistas previas": "Previews",
+  "Micrófono activo (experimental). Toca una nota clara y mantenida.": "Microphone on (experimental). Play one clear, sustained note.",
+  "Micrófono pausado para evitar que el ejemplo se detecte como una nota tocada. Actívalo de nuevo para escuchar tu piano.": "Microphone paused so the example is not detected as a note you played. Turn it on again to hear your piano.",
+  "Escuchando ejemplo (4 notas). El micrófono se ha desactivado para evitar falsos aciertos.": "Playing an example (4 notes). The microphone was turned off to avoid false matches.",
+  "¿Quieres borrar todo el progreso guardado en este dispositivo?": "Delete all progress saved on this device?",
+  "Re agudo": "High D",
+  "Mi agudo": "High E",
+  "Fa agudo": "High F",
+  "Sol agudo": "High G",
+  "Cofre común": "Common chest",
+  "Cofre raro": "Rare chest",
+  "Cofre épico": "Epic chest",
+  "Cofre legendario": "Legendary chest",
+  "Cofre mítico": "Mythic chest",
+  "COFRE COMÚN": "COMMON CHEST",
+  "COFRE RARO": "RARE CHEST",
+  "COFRE ÉPICO": "EPIC CHEST",
+  "COFRE LEGENDARIO": "LEGENDARY CHEST",
+  "COFRE MÍTICO": "MYTHIC CHEST",
+  "✋ Ambas": "✋ Both",
+  "✋ Izquierda": "✋ Left",
+  "✋ Derecha": "✋ Right",
+  "🎁 ¡Has desbloqueado un cofre! Ve a Recompensas para abrirlo.": "🎁 You unlocked a chest! Open it in Rewards.",
+  "🎯 Misiones": "🎯 Missions",
+  "Cofre Común": "Common chest",
+  "Cofre Raro": "Rare chest",
+  "Cofre Épico": "Epic chest",
+  "Cofre Legendario": "Legendary chest",
+  "Cofre Mítico": "Mythic chest",
+  "UNIDAD 1 · PRINCIPIANTE · GRATIS": "UNIT 1 · BEGINNER · FREE",
+  "Escribe un correo para simular una cuenta. No se envía ningún mensaje ni se verifica la propiedad de la dirección: todavía no hay inicio de sesión real. El correo no desbloquea lecciones ni canciones.": "Enter an email to simulate an account. No emails are sent or verified: there is no real sign-in yet. The email does not unlock lessons or songs.",
+  "Introducir correo": "Enter email"
 };
   const regexes = [
     [new RegExp("^¡Hola de nuevo! 👋$"),"Welcome back! 👋"],
@@ -303,15 +358,18 @@
     [new RegExp("^(\\d+) de (\\d+) lecciones$"),"$1 of $2 lessons"],
     [new RegExp("^(\\d+) de (\\d+) insignias desbloqueadas · Se ganan jugando y no cuestan monedas\\.$"),"$1 of $2 badges unlocked · Earned through practice, never purchased."],
     [new RegExp("^🏅 (\\d+) de (\\d+) insignias desbloqueadas · Se ganan jugando y no cuestan monedas\\.$"),"🏅 $1 of $2 badges unlocked · Earned through practice, never purchased."],
-    [new RegExp("^🎉 ¡Tienes (\\d+) premios? listos? para reclamar!$"),"🎉 You have $1 rewards ready to claim!"],
+    [new RegExp("^🎉 ¡Tienes (\\d+) premio listo para reclamar!$"),"🎉 You have $1 reward ready to claim!"],
+    [new RegExp("^🎉 ¡Tienes (\\d+) premios listos para reclamar!$"),"🎉 You have $1 rewards ready to claim!"],
     [new RegExp("^Semana desde el lunes (.+)$"),"Week starting Monday $1"],
     [new RegExp("^Reinician cada día · (.+)$"),"Resets daily · $1"],
     [new RegExp("^UNIDAD (\\d+) · FUNDAMENTOS$"),"UNIT $1 · BASICS"],
     [new RegExp("^UNIDAD (\\d+) · NIVEL INTERMEDIO$"),"UNIT $1 · INTERMEDIATE"],
-    [new RegExp("^UNIDAD (\\d+) · INTERMEDIO · (.*)$"),"UNIT $1 · INTERMEDIATE · $2"],
-    [new RegExp("^Próximo cofre: (.+)$"),"Next chest: $1"],
+    [new RegExp("^UNIDAD (\\d+) · INTERMEDIO · ACCESO ESPECIAL$"),"UNIT $1 · INTERMEDIATE · SPECIAL ACCESS"],
+    [new RegExp("^UNIDAD (\\d+) · INTERMEDIO · SONATA COMPLETO$"),"UNIT $1 · INTERMEDIATE · SONATA PREMIUM"],
+    [new RegExp("^Próximo cofre: (.+)$"),(_,name)=>`Next chest: ${dictionary[name]||name}`],
+    [new RegExp("^Completa (\\d+) lección más para desbloquearlo\\.$"),"Complete $1 more lesson to unlock it."],
     [new RegExp("^Completa (\\d+) lecciones más para desbloquearlo\\.$"),"Complete $1 more lessons to unlock it."],
-    [new RegExp("^Se desbloquea al completar (\\d+) (?:lección|lecciones)$"),"Unlocks after $1 completed lessons"],
+    [new RegExp("^Se desbloquea al completar (\\d+) (?:lección|lecciones)$"),(_,n)=>`Unlocks after ${n} completed ${n==='1'?'lesson':'lessons'}`],
     [new RegExp("^Conseguiste (\\d+) XP y (\\d+) monedas$"),"You earned $1 XP and $2 coins"],
     [new RegExp("^🔒 Faltan (\\d+) días de práctica$"),"🔒 $1 more practice days needed"],
     [new RegExp("^Disponible desde (\\d+) días de práctica$"),"Available after $1 practice days"],
@@ -321,24 +379,38 @@
     [new RegExp("^Lección (\\d+) de (\\d+)$"),"Lesson $1 of $2"],
     [new RegExp("^✅ (.+)$"),"✅ $1"],
     [new RegExp("^🎹 Esperando una nota.*$"),"🎹 Waiting for a note · play a key or enable microphone"],
-    [new RegExp("^✓ ¡Correcto! (.+)$"),"✓ Correct! $1"],
-    [new RegExp("^✕ Has tocado (.+)\\. Busca (.+)\\.$"),"✕ You played $1. Try $2."],
-    [new RegExp("^Posición: (.+) · pulgar en (.+)$"),"Position: $1 · thumb on $2"],
-    [new RegExp("^([✋🤚]) Mano (derecha|izquierda) · dedo (\\d+)$"),"$1 $2 hand · finger $3"],
-    [new RegExp("^COFRE (.+)$"),"$1 CHEST"],
-    [new RegExp("^Cofre (.+)$"),"$1 chest"],
+    [new RegExp("^✓ ¡Correcto! (.+)$"),(_,name)=>`✓ Correct! ${translateNoteLabel(name)}`],
+    [new RegExp("^✕ Has tocado (.+)\\. Busca (.+)\\.$"),(_,played,expected)=>`✕ You played ${translateNoteLabel(played)}. Try ${translateNoteLabel(expected)}.`],
+    [new RegExp("^(\\d+) estrella$"),"$1 star"],
+    [new RegExp("^(\\d+) estrellas$"),"$1 stars"],
+    [new RegExp("^Posición: (.+) · pulgar en ([A-G]) \\((.+)\\)$"),(_,pos,letter,solfege)=>`Position: ${dictionary[pos]||pos} · thumb on ${letter} (${dictionary[solfege]||solfege})`],
+    [new RegExp("^(.+) Mano (derecha|izquierda) · dedo (\\d+)$"),(_,emoji,side,finger)=>`${emoji} ${side==='derecha'?'Right':'Left'} hand · finger ${finger}`],
+    [new RegExp("^Dedo recomendado (\\d+)$"),"Suggested finger $1"],
+    [new RegExp("^Tocar (.+)$"),(_,name)=>`Play ${translateNoteLabel(name)}`],
+    [new RegExp("^Partitura en clave de sol: nota (.+)$"),(_,name)=>`Treble clef: note ${translateNoteLabel(name)}`],
+    [new RegExp("^Secuencia musical; nota actual (.+)$"),(_,name)=>`Musical sequence; current note ${translateNoteLabel(name)}`],
+    [new RegExp("^Teclado de piano con letras (.+)$"),"Piano keyboard with the letters $1"],
+    [new RegExp("^Progreso de (.+)$"),(_,name)=>`Progress for ${dictionary[name]||name}`],
+    [new RegExp("^([A-G]) · (.+)$"),(_,letter,name)=>`${letter} · ${dictionary[name]||name}`],
+    [new RegExp("^Necesitas (\\d+) días de práctica para desbloquear esta skin\\.$"),"You need $1 practice days to unlock this skin."],
+    [new RegExp("^¡Has comprado (.+)!$"),(_,name)=>`You bought ${dictionary[name]||name}!`],
+    [new RegExp("^(.+) equipada en tu piano\\.$"),(_,name)=>`${dictionary[name]||name} is on your piano.`],
+    [new RegExp("^¡Insignia (.+) equipada!$"),(_,name)=>`Badge equipped: ${dictionary[name]||name}!`],
+    [new RegExp("^MIDI activo: (.+) · rango Do4–Sol5$"),"MIDI active: $1 · range C4–G5"],
+    [new RegExp("^(\\d+)/(\\d+) LECCIONES$"),"$1/$2 LESSONS"],
+    [new RegExp("^(\\d+) CANCIONES$"),"$1 SONGS"],
+    [new RegExp("^(\\d+) día$"),"$1 day"],
+    [new RegExp("^(\\d+) días$"),"$1 days"],
     [new RegExp("^🎯 ¡Misión completada! \\+(\\d+) monedas 🪙$"),"🎯 Mission complete! +$1 coins 🪙"],
     [new RegExp("^¡Misión completada! \\+(\\d+) monedas 🪙$"),"Mission complete! +$1 coins 🪙"],
-    [new RegExp("^¡Insignia (.+) equipada!$"),"Badge equipped: $1!"],
     [new RegExp("^🪙 \\+(\\d+) monedas por practicar hoy\\.$"),"🪙 +$1 coins for today’s practice."]
   ];
   const originalNodes=new WeakMap(), originalAttrs=new WeakMap();
   let language=localStorage.getItem(STORAGE)==='es'?'es':'en';
   let observer, scheduled=false;
-  function swapTerms(s){
-    // Dynamic phrases may include counters, text already translated or instrument labels.
-    const words=[['lecciones completas','completed lessons'],['cofres abiertos','chests opened'],['monedas','coins'],['lecciones','lessons'],['días','days'],['nota','note'],['lección','lesson'],['agudo','high']];
-    return words.reduce((out,[a,b])=>out.replace(new RegExp('\\b'+a+'\\b','gi'),b),s);
+  function translateNoteLabel(name){
+    if(dictionary[name])return dictionary[name];
+    return name.replace(/Do agudo|Re agudo|Mi agudo|Fa agudo|Sol agudo/g,part=>dictionary[part]||part);
   }
   function translate(str){
     if(language==='es'||!str||!str.trim())return str;
@@ -347,12 +419,12 @@
     const value=m[2];
     let replacement=dictionary[value];
     if(replacement===undefined){
-      for(const [regex,template] of regexes){if(regex.test(value)){replacement=value.replace(regex,template);break}}
+      for(const [regex,template] of regexes){
+        regex.lastIndex=0;
+        if(regex.test(value)){regex.lastIndex=0;replacement=value.replace(regex,template);break}
+      }
     }
-    if(replacement===undefined){
-      if(/^(?:[\d\s.,/%+€🪙⭐🔥✦✓★☆]+)$/.test(value))return str;
-      replacement=swapTerms(value);
-    }
+    if(replacement===undefined)return str;
     return m[1]+replacement+m[3];
   }
   const ATTRS=['aria-label','placeholder','title','alt'];
