@@ -5,7 +5,7 @@ Aplicación web progresiva (PWA) diseñada para probarse en Android, iPhone y Ch
 ## Qué funciona
 - 8 lecciones secuenciales, 5 de principiante y 3 de nivel intermedio.
 - Teclado en pantalla con sonido y validación de notas. El teclado del ordenador usa el nombre de la letra, como en el piano: C Do, D Re, E Mi, F Fa, G Sol, A La, B Si. Si el ejercicio espera esa misma letra en la octava aguda (Do5–Sol5), la letra sin mayúsculas toca la nota esperada; si no, suena la octava de Do4 a Si4. Mayús+letra fuerza la octava 5 (Do5–Sol5) y la tecla 8 es siempre Do agudo. La y Si solo existen en la octava grave, así que Mayús+A y Mayús+B no tocan otra nota.
-- Micrófono experimental (necesita HTTPS y permisos), y Web MIDI si está disponible y hay piano compatible.
+- Micrófono como entrada principal: al empezar, Sonata pide permiso y escucha un piano acústico o digital para avanzar las lecciones. Si lo rechazas, siguen el teclado de la pantalla y el del ordenador. También hay Web MIDI con un piano compatible. Hace falta HTTPS.
 - Resultado por precisión con 1, 2 o 3 estrellas, XP al completar por primera vez una lección.
 - 4 canciones de práctica originales (2 gratuitas, 2 de nivel intermedio).
 - 5 cofres de rarezas, desbloqueados al completar 1, 2, 4, 6 y 8 lecciones. Cada cofre se abre una sola vez. XP y monedas se guardan en el navegador.
