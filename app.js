@@ -80,7 +80,7 @@
     {id:'fashion',icon:'🛍️',name:'Coleccionista',detail:'Compra una skin en la tienda.',earned:()=>state.ownedSkins.some(id=>id!=='classic')},
     {id:'master',icon:'💎',name:'Gran pianista',detail:'Completa las 8 lecciones.',earned:()=>completedCount()>=8}
   ];
-  const defaultState = () => ({xp:0,coins:0,completed:{},chests:{},songScores:{},ownedSkins:['classic'],equippedSkin:'classic',equippedBadge:'',email:'',invites:[],lastDay:'',streak:0,practiceDays:[],dailyCoinDate:'',missionStats:{daily:{},weekly:{}},claimedMissions:{}});
+  const defaultState = () => ({xp:0,coins:0,completed:{},chests:{},songScores:{},ownedSkins:['classic'],equippedSkin:'classic',equippedBadge:'',email:'',invites:[],lastDay:'',streak:0,practiceDays:[],dailyCoinDate:'',missionStats:{daily:{},weekly:{}},claimedMissions:{},micChoice:'unknown'});
   function normalizeOwnedSkins(list){
     const ids=[];
     const add=id=>{if(SKINS.some(skin=>skin.id===id)&&!ids.includes(id))ids.push(id);};
@@ -92,7 +92,7 @@
     try {
       const saved=JSON.parse(localStorage.getItem(STORE_KEY)||'null');
       if(!saved||typeof saved!=='object')return defaultState();
-      return {...defaultState(),...saved,completed:saved.completed||{},chests:saved.chests||{},songScores:saved.songScores||{},invites:Array.isArray(saved.invites)?saved.invites:[],practiceDays:Array.isArray(saved.practiceDays)?saved.practiceDays:[],missionStats:saved.missionStats&&typeof saved.missionStats==='object'?{daily:saved.missionStats.daily||{},weekly:saved.missionStats.weekly||{}}:{daily:{},weekly:{}},claimedMissions:saved.claimedMissions&&typeof saved.claimedMissions==='object'?saved.claimedMissions:{},ownedSkins:normalizeOwnedSkins(saved.ownedSkins),equippedSkin:SKINS.some(s=>s.id===saved.equippedSkin)?saved.equippedSkin:'classic'};
+      return {...defaultState(),...saved,completed:saved.completed||{},chests:saved.chests||{},songScores:saved.songScores||{},invites:Array.isArray(saved.invites)?saved.invites:[],practiceDays:Array.isArray(saved.practiceDays)?saved.practiceDays:[],missionStats:saved.missionStats&&typeof saved.missionStats==='object'?{daily:saved.missionStats.daily||{},weekly:saved.missionStats.weekly||{}}:{daily:{},weekly:{}},claimedMissions:saved.claimedMissions&&typeof saved.claimedMissions==='object'?saved.claimedMissions:{},ownedSkins:normalizeOwnedSkins(saved.ownedSkins),equippedSkin:SKINS.some(s=>s.id===saved.equippedSkin)?saved.equippedSkin:'classic',micChoice:['granted','denied','skipped','unknown'].includes(saved.micChoice)?saved.micChoice:'unknown'};
     } catch {return defaultState()}
   }
   let state=loadState();
@@ -102,8 +102,8 @@
       return !!saved && JSON.stringify(saved.ownedSkins)!==JSON.stringify(state.ownedSkins);
     }catch{return false}
   }
-  let route='home',activity=null,audioContext=null,micStream=null,micContext=null,micSource=null,micNode=null,micRaf=null,lastDetected='',lastDetectedAt=0;
-  let midiInput=null,midiAccess=null,toastTimeout,feedbackTimer=null,demoTimer=null,detectedCooldown=0,quietFrames=0;
+  let route='home',activity=null,audioContext=null,micStream=null,micContext=null,micSource=null,micNode=null,micRaf=null,micTracker=null,ignoreMicUntil=0;
+  let midiInput=null,midiAccess=null,toastTimeout,feedbackTimer=null,demoTimer=null;
   const main=document.getElementById('mainContent');
   const clean = value => String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const normalize = value => String(value||'').trim().toLowerCase();
@@ -385,9 +385,15 @@
     const node=document.getElementById('scoreTimeline');
     if(node){node.outerHTML=scoreTimeline();const fresh=document.getElementById('scoreTimeline');fresh.scrollLeft=Math.max(0,activity.index*70-120);}
   }
+  function listenPanel(){
+    const live=!!micStream;
+    return `<div class="listen-panel" id="listenPanel"><div class="listen-row"><span class="listen-dot ${live?'live':''}" id="listenDot"></span><span id="listenState">${live?'Escuchando tu piano':'Micrófono en pausa'}</span><b class="heard-note" id="heardNote">—</b></div><div class="level-meter" aria-label="Nivel del micrófono"><span id="levelFill"></span></div></div>`;
+  }
   function handChooser(){
+    const micAsk=micStream?'':`<button class="btn" data-mic-ask>🎤 ACTIVAR MICRÓFONO</button><p class="mic-note">Sin micrófono puedes usar la pantalla o las letras C D E F G A B.</p>`;
     return `<div class="hand-chooser" id="handChooser" role="dialog" aria-modal="true" aria-label="Elige tu modo de manos">
       <div class="hand-chooser-card"><div class="eyebrow">ANTES DE EMPEZAR</div><h2>¿Con qué mano quieres practicar?</h2><p>Elige una mano y sigue las indicaciones de cada dedo.</p>
+      ${micAsk}
       <button class="hand-choice" data-hand="right">🤚 Mano derecha <span>→</span></button>
       <button class="hand-choice" data-hand="left">✋ Mano izquierda <span>→</span></button>
       <button class="hand-choice" data-hand="both">🙌 Ambas manos (por turnos) <span>→</span></button>
@@ -402,22 +408,27 @@
       <div class="target-display"><div class="note-label">TOCA ESTA NOTA</div><div class="target-note" id="targetNote">${prettyName(target)}</div></div>
       <div class="staff" id="staffDrawing">${staffDrawing(target)}</div>
       <div class="lesson-feedback" id="lessonFeedback" role="status" aria-live="polite">🎹 Esperando una nota · toca o activa el micrófono</div>
+      ${listenPanel()}
       ${keyboard()}
       ${scoreTimeline()}
       <p class="lesson-help">${activity.type==='lesson'?clean(getLesson(activity.id).tip):(getSong(activity.id).keyboard==='birthday'?'Cumpleaños feliz: toca las letras G, A, B, C, D, E y F en orden.':'Sigue las notas de la canción, una por una.')}</p>
       ${fingerDiagram(target)}
     </section>
-    <div class="lesson-controls"><button class="btn secondary" id="hearTarget">🔊 ESCUCHAR NOTA</button><button class="btn secondary" id="demoSequence">▶ ESCUCHAR FRAGMENTO</button><button class="btn ghost" id="toggleLoop" aria-pressed="${activity.loopEnabled}">⟳ ${activity.loopEnabled?'QUITAR BUCLE':'REPETIR 4 NOTAS'}</button><button class="btn ghost" id="enableMic">🎤 ACTIVAR MICRÓFONO</button><button class="btn ghost" id="enableMidi">🎹 MIDI</button></div>
+    <div class="lesson-controls"><button class="btn secondary" id="hearTarget">🔊 ESCUCHAR NOTA</button><button class="btn secondary" id="demoSequence">▶ ESCUCHAR FRAGMENTO</button><button class="btn ghost" id="toggleLoop" aria-pressed="${activity.loopEnabled}">⟳ ${activity.loopEnabled?'QUITAR BUCLE':'REPETIR 4 NOTAS'}</button>${micStream?'<button class="btn ghost" id="enableMic" disabled>🎤 ESCUCHANDO</button>':'<button class="btn ghost" data-mic-ask id="enableMic">🎤 ACTIVAR MICRÓFONO</button>'}<button class="btn ghost" data-nav="calibrate">PROBAR DO</button><button class="btn ghost" id="enableMidi">🎹 MIDI</button></div>
     <div class="source-status" id="sourceStatus">Teclado del ordenador: C D E F G A B. Si la nota esperada es aguda, esa letra la toca. Mayús+letra fuerza la octava 5 y 8 es Do agudo. La pantalla, el micrófono y MIDI también valen.</div>
     ${activity.chooseHand?handChooser():''}`;
   }
   function progressBarActivity(percent){return `<div class="lesson-progress" aria-label="Progreso del ejercicio"><span id="activityBar" style="width:${percent}%"></span></div>`}
   function resultPage(){if(!activity)return home();const count=activity.notes.length,accuracy=Math.round(activity.correct/Math.max(1,activity.attempts)*100);const stars=accuracy>=95?3:accuracy>=75?2:1;const isLesson=activity.type==='lesson',data=isLesson?getLesson(activity.id):getSong(activity.id);
     return `<div class="result"><div class="result-burst">🎉</div><h1>¡${isLesson?'Lección':'Canción'} completada!</h1><p>¡Has llegado hasta la última nota!</p><div class="stars" aria-label="${stars} ${stars===1?'estrella':'estrellas'}">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</div><div class="result-stats"><div><strong>${accuracy}%</strong><small>Precisión</small></div><div><strong>${count}</strong><small>Notas correctas</small></div><div><strong>+${activity.awardedXP||0}</strong><small>XP nuevos</small></div></div><p>${activity.awardedCoins?`<span>🪙 +${activity.awardedCoins} monedas por practicar hoy.</span> `:''}<span>${activity.newChest?'🎁 ¡Has desbloqueado un cofre! Ve a Recompensas para abrirlo.':'Mejora tus estrellas repitiendo la actividad.'}</span></p><div class="actions"><button class="btn secondary" id="retryActivity">REPETIR</button><button class="btn" data-nav="${isLesson?'path':'songs'}">CONTINUAR →</button>${activity.newChest?'<button class="btn gold" data-nav="rewards">VER COFRES</button>':''}</div></div>`}
+  function calibratePage(){
+    return `${heading('Prueba el micrófono','Toca un Do para confirmar que te oímos.')}<section class="calibrate-card"><div class="note-label">TOCA ESTA NOTA</div><div class="target-note">C · Do</div><p>Toca el Do central o el Do agudo en tu piano, con una nota clara. Si el micrófono falla, las lecciones siguen en la pantalla y con las letras del ordenador.</p>${listenPanel()}${micStream?'':`<button class="btn" data-mic-ask>🎤 ACTIVAR MICRÓFONO</button>`}<p id="calibrateResult">Aún no oímos un Do.</p><button class="btn" id="calibrateDone" disabled>EMPEZAR A PRACTICAR</button><button class="btn ghost" data-nav="home">Volver al inicio</button></section>`;
+  }
   function navigate(next){
-    if(next!=='play'&&next!=='result')stopInputs();
+    if(next!=='play'&&next!=='result'&&next!=='calibrate')stopInputs();
     route=next;
-    const pages={home,path,songs,rewards,shop,missions,profile,premium:paywall,play:playPage,result:resultPage};
+    const pages={home,path,songs,rewards,shop,missions,profile,premium:paywall,play:playPage,result:resultPage,calibrate:calibratePage};
+    listenStateSource='';listenNoteSource='';
     main.innerHTML=(pages[next]||home)();
     document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('selected',el.dataset.nav===next||(next==='play'&&el.dataset.nav==='path')));
     window.scrollTo({top:0,behavior:'instant'});
@@ -425,6 +436,8 @@
     if(next==='play' && activity){updateFingerGuide(activity.notes[activity.index]);updateScore();}
   }
   function playTone(note){
+    ignoreMicUntil=performance.now()+620;
+    if(micTracker) micTracker.reset();
     try {
       const Context=window.AudioContext||window.webkitAudioContext;
       if(!Context)return;
@@ -535,46 +548,154 @@
     if(!navigator.requestMIDIAccess){toast('MIDI no está disponible en este navegador.');return}
     try{midiAccess=await navigator.requestMIDIAccess();const inputs=[...midiAccess.inputs.values()];if(!inputs.length){toast('Conecta un piano MIDI y vuelve a probar.');return}midiInput=inputs[0];midiInput.onmidimessage=e=>{const [status,note,velocity]=e.data;if((status&0xf0)===0x90&&velocity>0){const name=midiToNote(note);if(name)handleNote(name,'midi')}};document.getElementById('sourceStatus').textContent=`MIDI activo: ${midiInput.name||'piano conectado'} · rango Do4–Sol5`;toast('Piano MIDI conectado.');}catch(e){toast('No se pudo conectar el piano MIDI.')}
   }
-  function autoCorrelate(buffer,sampleRate){
-    const n=buffer.length;
-    let energy=0;for(let i=0;i<n;i++)energy+=buffer[i]*buffer[i];
-    const rms=Math.sqrt(energy/n);if(rms<.018)return null;
-    // Normalised autocorrelation for C4–G5. It can still mistake harmonics in noisy rooms.
-    const minLag=Math.floor(sampleRate/850),maxLag=Math.min(Math.floor(sampleRate/240),n/2);
-    let bestScore=-1,bestLag=0;
-    for(let lag=minLag;lag<=maxLag;lag++){
-      let sum=0,energyA=0,energyB=0;
-      for(let i=0;i<n-lag;i+=2){const a=buffer[i],b=buffer[i+lag];sum+=a*b;energyA+=a*a;energyB+=b*b;}
-      const score=sum/Math.sqrt(Math.max(1e-9,energyA*energyB));
-      if(score>bestScore){bestScore=score;bestLag=lag;}
-    }
-    if(bestScore<.72||!bestLag)return null;
-    return sampleRate/bestLag;
+  function detectPlatform(){
+    const ua=navigator.userAgent||'';
+    if(/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)) return 'ios';
+    if(/CrOS/.test(ua)) return 'chromebook';
+    if(/Android/.test(ua)) return 'android';
+    return 'desktop';
   }
-  async function enableMic(){
-    if(!navigator.mediaDevices?.getUserMedia){toast('Abre Sonata por HTTPS para usar el micrófono.');return}
-    try{
-      micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});lastDetected='';lastDetectedAt=0;detectedCooldown=0;quietFrames=0;
-      const Context=window.AudioContext||window.webkitAudioContext;micContext=new Context();micSource=micContext.createMediaStreamSource(micStream);micNode=micContext.createAnalyser();micNode.fftSize=4096;micSource.connect(micNode);const buffer=new Float32Array(micNode.fftSize);
-      document.getElementById('sourceStatus').textContent='Micrófono activo (experimental). Toca una nota clara y mantenida.';toast('Micrófono activado.');
-      const listen=()=>{
-        if(!micNode||route!=='play')return;
-        micNode.getFloatTimeDomainData(buffer);const freq=autoCorrelate(buffer,micContext.sampleRate);
-        if(!freq){quietFrames++;if(quietFrames>5){lastDetected='';lastDetectedAt=0}}else{
-          quietFrames=0;
-          const closest=Object.entries(NOTES).reduce((a,b)=>Math.abs(b[1]-freq)<Math.abs(a[1]-freq)?b:a);
-          const cents=1200*Math.log2(freq/closest[1]);const now=Date.now();
-          if(Math.abs(cents)<32){
-            if(lastDetected!==closest[0]){lastDetected=closest[0];lastDetectedAt=now}
-            else if(now-lastDetectedAt>280 && now>detectedCooldown){handleNote(closest[0],'micrófono');detectedCooldown=now+650;lastDetectedAt=Infinity;}
-          }
-        }
-        micRaf=requestAnimationFrame(listen);
-      };listen();
-    }catch(e){toast('No se pudo activar el micrófono. Comprueba el permiso.');stopInputs()}
+  function micHelpCopy(kind){
+    if(kind==='insecure') return 'El micrófono necesita una página HTTPS. Ábrela desde GitHub Pages, no como un archivo descargado.';
+    if(kind==='missing') return 'No encontramos un micrófono en este dispositivo. Puedes seguir con el teclado de la pantalla o del ordenador.';
+    if(kind==='busy') return 'El micrófono está ocupado por otra aplicación. Ciérrala y pulsa Activar micrófono otra vez.';
+    if(kind==='unsupported') return 'Este navegador no puede usar el micrófono. Sigue con el teclado de la pantalla o del ordenador.';
+    const where={
+      ios:'En iPhone o iPad abre Ajustes, entra en Safari y permite el micrófono. Vuelve a Sonata y pulsa Activar micrófono.',
+      android:'En Android toca el candado de la barra de direcciones, abre Permisos y permite el micrófono.',
+      chromebook:'En Chromebook toca el candado, abre la configuración del sitio y permite el micrófono. Revisa también el micrófono en la configuración de ChromeOS.',
+      desktop:'En el ordenador toca el candado de la barra de direcciones y permite el micrófono para este sitio.'
+    };
+    return where[detectPlatform()];
+  }
+  function classifyMicError(error){
+    const name=error&&error.name||'';
+    if(name==='NotAllowedError'||name==='PermissionDeniedError'||name==='SecurityError'&&!window.isSecureContext) return name==='SecurityError'?'insecure':'denied';
+    if(name==='NotFoundError'||name==='DevicesNotFoundError') return 'missing';
+    if(name==='NotReadableError'||name==='TrackStartError'||name==='AbortError') return 'busy';
+    if(name==='SecurityError') return 'insecure';
+    return 'denied';
+  }
+  function hideMicOverlay(){
+    const overlay=document.getElementById('micOverlay');
+    if(!overlay) return;
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden','true');
+    overlay.innerHTML='';
+  }
+  function showOnboarding(){
+    const overlay=document.getElementById('micOverlay');
+    if(!overlay) return;
+    overlay.innerHTML=`<div class="mic-card" role="dialog" aria-modal="true" aria-label="Activar el micrófono"><div class="eyebrow">TU PIANO</div><h2>¿Podemos escuchar tu piano?</h2><p>Sonata avanza las lecciones y las canciones con las notas que tocas en un piano acústico o digital. El audio se queda en este dispositivo: no lo enviamos a ningún servidor.</p><p>Si prefieres, puedes tocar en la pantalla o con las letras del ordenador.</p><button class="btn" data-mic-ask>🎤 ACTIVAR MICRÓFONO</button><button class="btn ghost" id="micSkip">SEGUIR CON EL TECLADO</button></div>`;
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden','false');
+  }
+  function showMicHelp(kind){
+    const overlay=document.getElementById('micOverlay');
+    if(!overlay) return;
+    overlay.innerHTML=`<div class="mic-card" role="dialog" aria-modal="true" aria-label="Permiso del micrófono"><h2>No pudimos usar el micrófono</h2><p>${micHelpCopy(kind)}</p><button class="btn" data-mic-ask>🎤 ACTIVAR MICRÓFONO</button><button class="btn ghost" id="micSkip">SEGUIR CON EL TECLADO</button></div>`;
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden','false');
+  }
+  let listenStateSource='',listenNoteSource='';
+  function paintListen(level,note){
+    const fill=document.getElementById('levelFill');
+    if(fill) fill.style.width=`${Math.max(0,Math.min(100,Math.round(level/0.2*100)))}%`;
+    const dot=document.getElementById('listenDot');
+    if(dot) dot.classList.toggle('live',!!micStream);
+    const stateNode=document.getElementById('listenState');
+    const nextState=micStream?'Escuchando tu piano':'Micrófono en pausa';
+    if(stateNode&&listenStateSource!==nextState){listenStateSource=nextState;stateNode.textContent=nextState;}
+    const heard=document.getElementById('heardNote');
+    const nextHeard=note?prettyName(note):'—';
+    if(heard&&listenNoteSource!==nextHeard){listenNoteSource=nextHeard;heard.textContent=nextHeard;}
+  }
+  function markCalibrated(note){
+    const node=document.getElementById('calibrateResult');
+    if(node) node.innerHTML=`<span>¡Te oímos!</span> <span>${prettyName(note)}</span>`;
+    const done=document.getElementById('calibrateDone');
+    if(done) done.disabled=false;
+  }
+  function attachStream(stream){
+    if(micRaf) cancelAnimationFrame(micRaf);
+    micRaf=null;
+    if(micStream&&micStream!==stream) micStream.getTracks().forEach(track=>track.stop());
+    if(micNode) micNode.disconnect();
+    if(micSource) micSource.disconnect();
+    if(micContext) micContext.close().catch(()=>{});
+    const Context=window.AudioContext||window.webkitAudioContext;
+    micContext=new Context();
+    micStream=stream;
+    micSource=micContext.createMediaStreamSource(stream);
+    micNode=micContext.createAnalyser();
+    micNode.fftSize=2048;
+    micNode.smoothingTimeConstant=0;
+    micSource.connect(micNode);
+    if(micContext.state==='suspended') micContext.resume();
+    micTracker=window.SonataPitch.createTracker(NOTES);
+    const buffer=new Float32Array(micNode.fftSize);
+    let frameSkip=0;
+    const listen=()=>{
+      if(!micNode||!micTracker) return;
+      micRaf=requestAnimationFrame(listen);
+      frameSkip=(frameSkip+1)%2;
+      if(frameSkip) return;
+      micNode.getFloatTimeDomainData(buffer);
+      if(performance.now()<ignoreMicUntil){micTracker.reset();paintListen(window.SonataPitch.rms(buffer),null);return;}
+      if(route!=='play'&&route!=='calibrate'){paintListen(window.SonataPitch.rms(buffer),null);return;}
+      const frame=micTracker.push(buffer,micContext.sampleRate);
+      paintListen(frame.level,frame.note);
+      if(!frame.emit) return;
+      if(route==='calibrate'&&(frame.emit==='Do'||frame.emit==='Do5')) markCalibrated(frame.emit);
+      else if(route==='play') handleNote(frame.emit,'micrófono');
+    };
+    listen();
+    paintListen(0,null);
+    const button=document.getElementById('enableMic');
+    if(button){button.textContent='🎤 ESCUCHANDO';button.disabled=true;button.removeAttribute('data-mic-ask');}
+  }
+  function requestMic(){
+    if(micStream) return Promise.resolve('granted');
+    const secure=window.isSecureContext||location.hostname==='localhost'||location.hostname==='127.0.0.1';
+    if(!secure){showMicHelp('insecure');return Promise.resolve('insecure');}
+    if(!navigator.mediaDevices?.getUserMedia){showMicHelp('unsupported');return Promise.resolve('unsupported');}
+    const open=constraints=>navigator.mediaDevices.getUserMedia(constraints);
+    return open({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}}).catch(error=>{
+      if(error&&error.name==='OverconstrainedError') return open({audio:true});
+      throw error;
+    }).then(stream=>{
+      attachStream(stream);
+      state.micChoice='granted';
+      save();
+      return 'granted';
+    }).catch(error=>{
+      const kind=classifyMicError(error);
+      if(kind==='denied') state.micChoice='denied';
+      save();
+      showMicHelp(kind);
+      return kind;
+    });
   }
   // Navegación y acciones delegadas (sobreviven a renderizados de pantalla).
   document.addEventListener('click',e=>{
+    if(e.target.closest('[data-mic-ask]')){
+      const fromStart=!state.micChoice||state.micChoice==='unknown'||!!document.getElementById('micOverlay')?.classList.contains('show');
+      requestMic().then(result=>{
+        if(result!=='granted') return;
+        hideMicOverlay();
+        toast('Micrófono activado.');
+        if(fromStart&&route!=='play') navigate('calibrate');
+        else if(route==='play'||route==='calibrate') navigate(route);
+      });
+      return;
+    }
+    if(e.target.closest('#micSkip')){
+      if(state.micChoice!=='granted') state.micChoice='skipped';
+      save();
+      hideMicOverlay();
+      return;
+    }
+    if(e.target.closest('#calibrateDone')){navigate('path');return}
     const nav=e.target.closest('[data-nav]');if(nav){navigate(nav.dataset.nav);return}
     const lesson=e.target.closest('[data-lesson]');if(lesson){startActivity('lesson',lesson.dataset.lesson);return}
     const song=e.target.closest('[data-song]');if(song){startActivity('song',song.dataset.song);return}
@@ -588,10 +709,9 @@
     }
     const note=e.target.closest('[data-note]');if(note){handleNote(note.dataset.note);return}
     if(e.target.closest('#leaveLesson')){navigate(activity?.type==='song'?'songs':'path');return}
-    if(e.target.closest('#hearTarget')&&activity){if(micStream){stopMicrophoneOnly();document.getElementById('sourceStatus').textContent='Micrófono pausado para evitar que el ejemplo se detecte como una nota tocada. Actívalo de nuevo para escuchar tu piano.'}playTone(activity.notes[activity.index]);return}
+    if(e.target.closest('#hearTarget')&&activity){playTone(activity.notes[activity.index]);return}
     if(e.target.closest('#enableMidi')){enableMIDI();return}
-    if(e.target.closest('#enableMic')){enableMic();return}
-    const hand=e.target.closest('[data-hand]');if(hand&&activity){activity.hand=hand.dataset.hand;activity.chooseHand=false;navigate('play');return}
+    const hand=e.target.closest('[data-hand]');if(hand&&activity){activity.hand=hand.dataset.hand;activity.chooseHand=false;if(state.micChoice==='granted'&&!micStream) requestMic();navigate('play');return}
     if(e.target.closest('#handSettings')&&activity){activity.chooseHand=true;navigate('play');return}
     if(e.target.closest('#toggleLoop')&&activity){
       activity.loopEnabled=!activity.loopEnabled;
@@ -602,17 +722,16 @@
     }
     if(e.target.closest('#demoSequence')&&activity){
       clearTimeout(demoTimer);
-      // Prevent playback from being mistaken for an external instrument.
-      if(micStream)stopMicrophoneOnly();
       const segment=activity.notes.slice(activity.index,activity.index+4);
+      ignoreMicUntil=performance.now()+segment.length*560+240;
+      if(micTracker) micTracker.reset();
       segment.forEach((n,i)=>{demoTimer=setTimeout(()=>playTone(n),i*560)});
-      document.getElementById('sourceStatus').textContent='Escuchando ejemplo (4 notas). El micrófono se ha desactivado para evitar falsos aciertos.';
       return;
     }
     if(e.target.closest('#dismissPrize')){dismissPrize();return}
     if(e.target.closest('#retryActivity')&&activity){startActivity(activity.type,activity.id);return}
     if(e.target.closest('#fakeCheckout')){toast('Todavía no se realizan pagos en el MVP.');return}
-    if(e.target.closest('#resetProgress')){const ask='¿Quieres borrar todo el progreso guardado en este dispositivo?';if(confirm(window.SonataI18n?window.SonataI18n.translate(ask):ask)){state=defaultState();save();navigate('home');toast('Progreso de prueba borrado.')}return}
+    if(e.target.closest('#resetProgress')){const ask='¿Quieres borrar todo el progreso guardado en este dispositivo?';if(confirm(window.SonataI18n?window.SonataI18n.translate(ask):ask)){const remembered=state.micChoice;state=defaultState();state.micChoice=remembered;save();navigate('home');toast('Progreso de prueba borrado.')}return}
   });
   document.addEventListener('submit',e=>{
     if(e.target.id==='emailForm'){e.preventDefault();state.email=normalize(document.getElementById('emailInput').value);save();navigate('profile');toast('Correo de prueba guardado en este dispositivo.');return}
@@ -641,4 +760,5 @@
   }
   if(storedSkinsNeedCleanup())save();
   syncHeader();navigate('home');document.documentElement.classList.add('sonata-interactiva');
+  if(state.micChoice==='unknown') showOnboarding();
 })();
