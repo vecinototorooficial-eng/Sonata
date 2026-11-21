@@ -358,7 +358,7 @@
     const white=sequence.map(note=>`<button class="white-key${note===activity?.notes[activity.index]?' guide-target':''}" data-note="${note}" aria-label="Tocar ${prettyName(note)}"><span class="key-letter">${LETTER[note]}</span><span class="key-name">${note.replace('5','↑')}</span></button>`).join('');
     const blacks=(birthday?[1,2,4,5,7]:[1,2,4,5,6]).map(after=>`<span class="black-key" style="left:${after*12.5}%" aria-hidden="true"></span>`).join('');
     const letters=birthday?'G A B C D E F G':'C D E F G A B C';
-    return `<div class="keyboard-guide">Teclas blancas: <b>${letters}</b>${birthday?' · Desde Sol4 hasta Sol5':''}</div><div class="practice-keyboard" aria-label="Teclado de piano con letras ${letters}"><div class="white-keys">${white}</div>${blacks}${handOverlay(activity.notes[activity.index])}</div>`;
+    return `<div class="keyboard-guide"><span>Letras del ordenador: C Do, D Re, E Mi, F Fa, G Sol, A La, B Si. La letra sigue la nota esperada; Mayús o 8 suben la octava.</span>${birthday?'<span> · Desde Sol4 hasta Sol5</span>':''}</div><div class="practice-keyboard" aria-label="Teclado de piano con letras ${letters}"><div class="white-keys">${white}</div>${blacks}${handOverlay(activity.notes[activity.index])}</div>`;
   }
   function scoreTimeline(){
     if(!activity)return '';
@@ -408,7 +408,7 @@
       ${fingerDiagram(target)}
     </section>
     <div class="lesson-controls"><button class="btn secondary" id="hearTarget">🔊 ESCUCHAR NOTA</button><button class="btn secondary" id="demoSequence">▶ ESCUCHAR FRAGMENTO</button><button class="btn ghost" id="toggleLoop" aria-pressed="${activity.loopEnabled}">⟳ ${activity.loopEnabled?'QUITAR BUCLE':'REPETIR 4 NOTAS'}</button><button class="btn ghost" id="enableMic">🎤 ACTIVAR MICRÓFONO</button><button class="btn ghost" id="enableMidi">🎹 MIDI</button></div>
-    <div class="source-status" id="sourceStatus">Puedes tocar el teclado de pantalla. Para reconocer tu piano físico activa el micrófono o conecta MIDI.</div>
+    <div class="source-status" id="sourceStatus">Teclado del ordenador: C D E F G A B. Si la nota esperada es aguda, esa letra la toca. Mayús+letra fuerza la octava 5 y 8 es Do agudo. La pantalla, el micrófono y MIDI también valen.</div>
     ${activity.chooseHand?handChooser():''}`;
   }
   function progressBarActivity(percent){return `<div class="lesson-progress" aria-label="Progreso del ejercicio"><span id="activityBar" style="width:${percent}%"></span></div>`}
@@ -617,13 +617,24 @@
   document.addEventListener('submit',e=>{
     if(e.target.id==='emailForm'){e.preventDefault();state.email=normalize(document.getElementById('emailInput').value);save();navigate('profile');toast('Correo de prueba guardado en este dispositivo.');return}
   });
+  const LOWER_OCTAVE={c:'Do',d:'Re',e:'Mi',f:'Fa',g:'Sol',a:'La',b:'Si'};
+  const UPPER_OCTAVE={c:'Do5',d:'Re5',e:'Mi5',f:'Fa5',g:'Sol5'};
+  function noteFromComputerKey(event){
+    if(event.key==='8')return 'Do5';
+    if(event.key.length!==1)return;
+    const letter=event.key.toLowerCase();
+    const lower=LOWER_OCTAVE[letter];
+    if(!lower)return;
+    if(event.shiftKey)return UPPER_OCTAVE[letter];
+    const expected=activity?.notes?.[activity.index];
+    if(expected && LETTER[expected]?.toLowerCase()===letter)return expected;
+    return lower;
+  }
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'){dismissPrize();return}
-    if(route!=='play'||e.repeat||['INPUT','TEXTAREA'].includes(document.activeElement.tagName))return;
-    // Home row matches the README: A=C4 … K=C5. L ; ' ] continue through G5.
-    // C, E, B and 8 repeat pitches that do not collide with that row.
-    const map={a:'Do',s:'Re',d:'Mi',f:'Fa',g:'Sol',h:'La',j:'Si',k:'Do5',l:'Re5',';':'Mi5',"'":'Fa5',']':'Sol5',c:'Do',e:'Mi',b:'Si','8':'Do5'};
-    const note=e.key.length===1?map[e.key.toLowerCase()]:undefined;if(note){e.preventDefault();handleNote(note)}
+    if(route!=='play'||e.repeat||['INPUT','TEXTAREA'].includes(document.activeElement?.tagName))return;
+    const note=noteFromComputerKey(e);
+    if(note){e.preventDefault();handleNote(note)}
   });
   if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
     window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(err=>console.warn('SW:',err)));
