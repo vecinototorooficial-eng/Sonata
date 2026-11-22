@@ -80,7 +80,7 @@
     {id:'fashion',icon:'🛍️',name:'Coleccionista',detail:'Compra una skin en la tienda.',earned:()=>state.ownedSkins.some(id=>id!=='classic')},
     {id:'master',icon:'💎',name:'Gran pianista',detail:'Completa las 8 lecciones.',earned:()=>completedCount()>=8}
   ];
-  const defaultState = () => ({xp:0,coins:0,completed:{},chests:{},songScores:{},ownedSkins:['classic'],equippedSkin:'classic',equippedBadge:'',email:'',invites:[],lastDay:'',streak:0,practiceDays:[],dailyCoinDate:'',missionStats:{daily:{},weekly:{}},claimedMissions:{},micChoice:'unknown'});
+  const defaultState = () => ({xp:0,coins:0,completed:{},chests:{},songScores:{},ownedSkins:['classic'],equippedSkin:'classic',equippedBadge:'',email:'',invites:[],lastDay:'',streak:0,practiceDays:[],dailyCoinDate:'',missionStats:{daily:{},weekly:{}},claimedMissions:{},micChoice:'unknown',centsTolerance:45,micDebug:false});
   function normalizeOwnedSkins(list){
     const ids=[];
     const add=id=>{if(SKINS.some(skin=>skin.id===id)&&!ids.includes(id))ids.push(id);};
@@ -92,7 +92,7 @@
     try {
       const saved=JSON.parse(localStorage.getItem(STORE_KEY)||'null');
       if(!saved||typeof saved!=='object')return defaultState();
-      return {...defaultState(),...saved,completed:saved.completed||{},chests:saved.chests||{},songScores:saved.songScores||{},invites:Array.isArray(saved.invites)?saved.invites:[],practiceDays:Array.isArray(saved.practiceDays)?saved.practiceDays:[],missionStats:saved.missionStats&&typeof saved.missionStats==='object'?{daily:saved.missionStats.daily||{},weekly:saved.missionStats.weekly||{}}:{daily:{},weekly:{}},claimedMissions:saved.claimedMissions&&typeof saved.claimedMissions==='object'?saved.claimedMissions:{},ownedSkins:normalizeOwnedSkins(saved.ownedSkins),equippedSkin:SKINS.some(s=>s.id===saved.equippedSkin)?saved.equippedSkin:'classic',micChoice:['granted','denied','skipped','unknown'].includes(saved.micChoice)?saved.micChoice:'unknown'};
+      return {...defaultState(),...saved,completed:saved.completed||{},chests:saved.chests||{},songScores:saved.songScores||{},invites:Array.isArray(saved.invites)?saved.invites:[],practiceDays:Array.isArray(saved.practiceDays)?saved.practiceDays:[],missionStats:saved.missionStats&&typeof saved.missionStats==='object'?{daily:saved.missionStats.daily||{},weekly:saved.missionStats.weekly||{}}:{daily:{},weekly:{}},claimedMissions:saved.claimedMissions&&typeof saved.claimedMissions==='object'?saved.claimedMissions:{},ownedSkins:normalizeOwnedSkins(saved.ownedSkins),equippedSkin:SKINS.some(s=>s.id===saved.equippedSkin)?saved.equippedSkin:'classic',micChoice:['granted','denied','skipped','unknown'].includes(saved.micChoice)?saved.micChoice:'unknown',centsTolerance:Math.min(80,Math.max(20,Number(saved.centsTolerance)||45)),micDebug:saved.micDebug===true};
     } catch {return defaultState()}
   }
   let state=loadState();
@@ -268,6 +268,7 @@
   function profile(){return `${heading('Tu perfil','Tu progreso y los ajustes de Sonata.')}<div class="profile-card"><h2>👤 Tu cuenta (modo prueba)</h2><p>Escribe un correo para simular una cuenta. No se envía ningún mensaje ni se verifica la propiedad de la dirección: todavía no hay inicio de sesión real. El correo no desbloquea lecciones ni canciones.</p><form id="emailForm" class="field-row"><input type="email" id="emailInput" required autocomplete="email" placeholder="tu@email.com" value="${clean(state.email)}" aria-label="Correo de cuenta"><button class="btn" type="submit">GUARDAR</button></form><span class="badge">Plan principiante · Gratis</span></div>
       <div class="profile-card"><h2>📊 Tus estadísticas</h2><p><strong>${completedCount()}</strong> <span>lecciones completas</span> · <strong>${state.xp}</strong> XP · <strong>${state.coins}</strong> ${coinIcon(14)} <span>monedas</span> · <strong>${Object.keys(state.chests).length}</strong> <span>cofres abiertos</span></p><button class="btn secondary" data-nav="path">VER CAMINO MUSICAL</button> <button class="btn secondary" data-nav="shop">🛍️ TIENDA DE SKINS</button> <button class="btn secondary" data-nav="missions">🎯 Misiones</button></div>
       <div class="profile-card"><h2>🏅 Tus insignias</h2><p>Elige una insignia ganada para lucirla en tu perfil.</p>${achievementCards()}</div>
+      <div class="profile-card"><h2>🎤 Micrófono</h2><p>Tolerancia de afinación. Un valor más alto acepta pianos un poco desafinados.</p><label class="cents-label"><span>Tolerancia</span> <b id="centsRead">${state.centsTolerance||45}</b> cents</label><input id="centsTolerance" type="range" min="20" max="80" step="5" value="${state.centsTolerance||45}" aria-label="Tolerancia en cents"><label class="debug-label"><input id="micDebug" type="checkbox" ${state.micDebug?'checked':''}><span>Mostrar frecuencia y confianza</span></label></div>
       <div class="profile-card"><h2>⚙️ Pruebas</h2><p>Se guardan tus datos con el almacenamiento de este navegador. Si borras los datos del sitio, se perderá el progreso.</p><button class="btn ghost" id="resetProgress">BORRAR PROGRESO DE PRUEBA</button></div>
       <p class="footer-note">MVP de evaluación. Sin cuentas verificadas, pagos operativos ni sincronización entre dispositivos.</p>`}
   function paywall(){return `${heading('Sonata Completo','El siguiente paso de tu camino musical.')}<div class="paywall"><div class="lock">🔐</div><div class="eyebrow">NIVEL INTERMEDIO Y CANCIONES</div><h1>Desbloquea todo Sonata</h1><div class="price">10 €</div><p>Precio previsto de un único pago. Incluye las lecciones intermedias y todas las canciones de esta versión.</p><button class="btn" id="fakeCheckout">COMPRA NO DISPONIBLE EN EL MVP</button><p class="small-print">No se realiza ningún cobro. Antes de vender habrá que integrar pagos reales y verificar permisos en un servidor.</p></div>`}
@@ -281,10 +282,10 @@
       if(isLocked(data)){navigate('premium');return}
       if(!isAvailable(index)){toast('Completa primero las lecciones anteriores.');return}
     }else if(songLocked(data)){navigate('premium');return}
-    stopInputs();activity={type,id,title:data.title,notes:data.notes.slice(),index:0,correct:0,mistakes:0,attempts:0,source:'pantalla',finished:false,hand:'right',chooseHand:true,waiting:false,loopStart:-1,loopEnd:-1,loopEnabled:false};navigate('play');
+    stopInputs();activity={type,id,title:data.title,notes:data.notes.slice(),index:0,correct:0,mistakes:0,attempts:0,source:'pantalla',finished:false,hand:'right',chooseHand:true,placeHands:false,waiting:false,loopStart:-1,loopEnd:-1,loopEnabled:false};navigate('play');
   }
   // Guía ilustrativa para principiantes; no sustituye la digitación de una partitura revisada.
-  // La mano derecha tiene pulgar=1 e índice=2, medio=3, anular=4 y meñique=5.
+  // Pulgar=1 en las dos manos. En la derecha el 1 cae en la nota más grave de la posición; en la izquierda, en la más aguda.
   // Tres posiciones sencillas cubren el registro utilizado en este MVP.
   const HAND_POSITIONS = [
     {name:'Do central',base:'Do',notes:['Do','Re','Mi','Fa','Sol']},
@@ -296,82 +297,70 @@
     const birthday=activity?.type==='song'&&activity.id==='birthday';
     const position=birthday?(['Sol','La','Si','Do5','Re5'].includes(note)?HAND_POSITIONS[2]:HAND_POSITIONS[3]):
       (HAND_POSITIONS[0].notes.includes(note)?HAND_POSITIONS[0]:(HAND_POSITIONS[1].notes.includes(note)?HAND_POSITIONS[1]:HAND_POSITIONS[3]));
-    return {position,finger:position.notes.indexOf(note)+1,note};
+    return {position,finger:fingerNumber(position,note)||1,note};
+  }
+  function fingerNumber(position,noteName){
+    const index=position.notes.indexOf(noteName);
+    if(index<0) return 0;
+    return activeHand()==='left'?5-index:index+1;
   }
   function activeHand(){
     if(!activity)return 'right';
     if(activity.hand==='both')return Math.floor(activity.index/4)%2===0?'right':'left';
     return activity.hand||'right';
   }
-  function fingerDiagram(note){
-    const info=fingeringFor(note);
-    const hand=activeHand();
-    const fingertips=[{x:44,y:67},{x:67,y:39},{x:92,y:27},{x:117,y:38},{x:142,y:55}];
-    const fingers=fingertips.map((f,i)=>{
-      const active=i+1===info.finger;
-      return `<g><line x1="${f.x}" y1="${f.y+6}" x2="${63+i*14}" y2="96" stroke="${active?'#1686d9':'#aebdca'}" stroke-width="${active?18:15}" stroke-linecap="round" />
-      <circle cx="${f.x}" cy="${f.y}" r="${active?15:12}" fill="${active?'#1686d9':'#dfe8ef'}" stroke="white" stroke-width="2"/>
-      <text x="${f.x}" y="${f.y+4.5}" text-anchor="middle" font-size="13" font-weight="bold" fill="${active?'white':'#647f91'}">${i+1}</text></g>`;
+  const FINGER_COLORS=['#e23b3b','#f08a12','#1f9d6a','#2f7de1','#7a4ec8'];
+  function handFigure(side,emphasize){
+    const right=side==='right';
+    const order=right?[1,2,3,4,5]:[5,4,3,2,1];
+    const lift={1:50,2:24,3:8,4:20,5:38};
+    const slots=[22,48,74,100,126];
+    const fingers=order.map((finger,index)=>{
+      const color=FINGER_COLORS[finger-1];
+      const x=slots[index];
+      const y=lift[finger];
+      const on=emphasize&&finger===1;
+      return `<g><rect x="${x-10}" y="${y+10}" width="20" height="${96-y}" rx="10" fill="${color}"/><circle cx="${x}" cy="${y+12}" r="${on?12:10}" fill="${color}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y+16}" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">${finger}</text></g>`;
     }).join('');
-    return `<div class="finger-training" id="fingerTraining"><div class="hand-graphic ${hand==='left'?'left-hand':''}" aria-hidden="true"><svg viewBox="0 0 190 125" role="presentation"><path d="M54 103 Q55 82 76 78 L128 80 Q145 90 138 117 L67 117 Z" fill="#dfe8ef" stroke="#bdcbd8" stroke-width="2" />${fingers}</svg></div><div class="finger-training-copy"><b>${hand==='right'?'🤚 Mano derecha':'✋ Mano izquierda'} · dedo ${info.finger}</b><span id="fingerPosition">Posición: ${info.position.name} · pulgar en ${LETTER[info.position.base]} (${info.position.base.replace('5',' agudo')})</span><small>La mano semitransparente indica la posición; sigue el dedo iluminado sobre la tecla.</small></div></div>`;
+    const label=right?'Mano derecha':'Mano izquierda';
+    return `<figure class="hand-figure ${emphasize?'is-active':''}"><svg viewBox="0 0 148 128" role="img" aria-label="${label}"><rect x="14" y="78" width="120" height="40" rx="16" fill="#f6d3b8" stroke="#e2b89a"/>${fingers}</svg><figcaption>${label}</figcaption></figure>`;
+  }
+  function thumbLine(){
+    const base=fingeringFor(activity.notes[0]).position.base;
+    const lines={
+      right:{Do:'El pulgar derecho va en Do central (C).',Fa:'El pulgar derecho va en Fa (F).',Sol:'El pulgar derecho va en Sol (G).',Do5:'El pulgar derecho va en Do agudo (C).'},
+      left:{Do:'El pulgar izquierdo va en Sol (G).',Fa:'El pulgar izquierdo va en Do agudo (C).',Sol:'El pulgar izquierdo va en Re agudo (D).',Do5:'El pulgar izquierdo va en Sol agudo (G).'},
+      both:{Do:'El pulgar derecho va en Do central (C) y el izquierdo en Sol (G).',Fa:'El pulgar derecho va en Fa (F) y el izquierdo en Do agudo (C).',Sol:'El pulgar derecho va en Sol (G) y el izquierdo en Re agudo (D).',Do5:'El pulgar derecho va en Do agudo (C) y el izquierdo en Sol agudo (G).'}
+    };
+    const hand=activity.hand==='both'?'both':activity.hand==='left'?'left':'right';
+    return (lines[hand]&&lines[hand][base])||lines.right.Do;
+  }
+  function placeHandsStep(){
+    return `<div class="hand-setup" id="handSetup" role="dialog" aria-modal="true" aria-label="Coloca tus manos"><div class="hand-setup-card"><div class="eyebrow">ANTES DE TOCAR</div><h2>Coloca tus manos</h2><p>${thumbLine()}</p><div class="hand-pair">${handFigure('left',activity.hand!=='right')}${handFigure('right',activity.hand!=='left')}</div><p class="hand-legend"><span>1 pulgar</span><span>2 índice</span><span>3 medio</span><span>4 anular</span><span>5 meñique</span></p><p>La vista es la de tus manos sobre el piano: el pulgar de la derecha queda a la izquierda, y el de la izquierda a la derecha.</p><button class="btn" id="handsReady">LISTO</button></div></div>`;
+  }
+  function handStrip(note){
+    const hand=activeHand();
+    const info=fingeringFor(note);
+    const dots=[1,2,3,4,5].map(finger=>`<i class="finger-dot ${finger===info.finger?'is-on':''}" style="background:${FINGER_COLORS[finger-1]}">${finger}</i>`).join('');
+    return `<div class="hand-strip" id="handStrip"><b class="hand-lr">${hand==='left'?'L':'R'}</b><span>${hand==='left'?'Mano izquierda':'Mano derecha'}</span><span class="finger-dots" aria-hidden="true">${dots}</span></div>`;
   }
   function updateFingerGuide(note){
-    const current=document.getElementById('fingerTraining');
-    if(current)current.outerHTML=fingerDiagram(note);
-    const overlay=document.getElementById('keyboardHands');if(overlay)overlay.outerHTML=handOverlay(note);
+    const info=fingeringFor(note);
     document.querySelectorAll('.white-key').forEach(key=>{
-      const isTarget=key.dataset.note===note;
-      key.classList.toggle('guide-target',isTarget);
-      const old=key.querySelector('.finger-marker');if(old)old.remove();
-      if(isTarget){const circle=document.createElement('span');circle.className='finger-marker';circle.textContent=String(fingeringFor(note).finger);circle.setAttribute('aria-label','Dedo recomendado '+circle.textContent);key.append(circle)}
+      const name=key.dataset.note;
+      const finger=fingerNumber(info.position,name);
+      key.classList.toggle('guide-target',name===note);
+      const old=key.querySelector('.key-finger');
+      if(!finger){old?.remove();return;}
+      const badge=old||document.createElement('span');
+      badge.className='key-finger'+(name===note?' is-target':'');
+      badge.textContent=String(finger);
+      badge.style.background=FINGER_COLORS[finger-1];
+      badge.setAttribute('aria-label','Dedo '+finger);
+      if(!old) key.append(badge);
     });
-  }
-  function handOverlay(note){
-    const birthday=activity?.type==='song'&&getSong(activity.id)?.keyboard==='birthday';
-    const seq=birthday?['Sol','La','Si','Do5','Re5','Mi5','Fa5','Sol5']:['Do','Re','Mi','Fa','Sol','La','Si','Do5'];
-    const info=fingeringFor(note), hand=activeHand(), left=hand==='left';
-    // Dibujamos la mano desde arriba. Cada punta está alineada con su tecla blanca.
-    // Mano derecha: pulgar a la izquierda; izquierda: pulgar a la derecha.
-    const visible=info.position.notes.map((n,i)=>({note:n,physicalIndex:i,slot:seq.indexOf(n)})).filter(x=>x.slot>=0);
-    const pointAt=idx=>{
-      const finger=visible.find(x=>x.physicalIndex===idx);
-      return finger?(finger.slot+.5)*125:null;
-    };
-    const usable=visible.map(x=>(x.slot+.5)*125);
-    const center=usable.length?(Math.min(...usable)+Math.max(...usable))/2:500;
-    const width=Math.max(150,Math.min(400,usable.length*100));
-    const startX=Math.max(30,Math.min(970,center));
-    const palmX=Math.max(120,Math.min(880,startX+(left?12:-12)));
-    const strokeColor='#b77953';
-    const tips=Array.from({length:5},(_,i)=>pointAt(i)??(center+(i-2)*90));
-    const tipY=[173,132,117,133,164];
-    const wristX=palmX+(left?-23:23);
-    const skinFill='url(#sonata-hand-skin)';
-    const fingers=tips.map((x,i)=>{
-      const active=info.position.notes[i]===note;
-      const knuckle=palmX+(i-2)*24;
-      const y=tipY[i];
-      const thickness=i===0?51:42;
-      const fingerNumber=i+1;
-      return `<g class="hand-finger ${active?'finger-lit':''}">
-        <path d="M ${knuckle.toFixed(1)} 226 Q ${x.toFixed(1)} 197 ${x.toFixed(1)} ${y.toFixed(1)}" fill="none" stroke="#9b624b" stroke-opacity=".29" stroke-width="${thickness+5}" stroke-linecap="round"/>
-        <path d="M ${knuckle.toFixed(1)} 226 Q ${x.toFixed(1)} 197 ${x.toFixed(1)} ${y.toFixed(1)}" fill="none" stroke="${skinFill}" stroke-width="${thickness}" stroke-linecap="round"/>
-        <ellipse cx="${x}" cy="${y}" rx="${i===0?23:20}" ry="${i===0?18:23}" fill="${active?'#ffcb84':'#f6c8a8'}" stroke="${active?'#db8e3a':'#d39975'}" stroke-width="2" />
-        <ellipse cx="${x}" cy="${y-5}" rx="9" ry="11" fill="#ffebdc" opacity=".8"/>
-        ${active?`<circle cx="${x}" cy="${y-4}" r="30" fill="none" stroke="#ffad39" stroke-width="7" opacity=".93"><animate attributeName="opacity" values=".45;.95;.45" dur="1.7s" repeatCount="indefinite"/></circle>`:''}
-        <g transform="translate(${x} ${y-36})"><rect x="-17" y="-15" width="34" height="27" rx="12" fill="${active?'#fa9a33':'#fff9ef'}" stroke="${active?'#cd7429':'#bf977a'}" stroke-width="2"/><text x="0" y="4" text-anchor="middle" font-size="19" font-weight="900" fill="${active?'white':'#8a6247'}">${fingerNumber}</text></g>
-      </g>`;
-    }).join('');
-    return `<div class="keyboard-hand-overlay" id="keyboardHands" aria-hidden="true">
-      <img class="photographic-hand ${left?'hand-image-left':'hand-image-right'}" src="./icons/mano-superpuesta.webp" alt="" draggable="false" style="left:${(center/10).toFixed(2)}%">
-      <svg class="real-hand-svg" viewBox="0 0 1000 300" preserveAspectRatio="none" role="presentation">
-        <defs><linearGradient id="sonata-hand-skin" x1="0" y1="0" x2="1" y2=".9"><stop offset="0" stop-color="#ffe9d6"/><stop offset=".52" stop-color="#f5c5a6"/><stop offset="1" stop-color="#d8a17f"/></linearGradient></defs>
-        <g class="hand-silhouette"><path d="M ${wristX-65} 308 Q ${palmX-74} 263 ${palmX-92} 227 Q ${palmX-87} 207 ${palmX-58} 197 Q ${palmX} 166 ${palmX+60} 197 Q ${palmX+93} 204 ${palmX+95} 229 Q ${palmX+68} 271 ${wristX+68} 308 Z" fill="${skinFill}" stroke="${strokeColor}" stroke-width="3" stroke-opacity=".32"/>
-        ${fingers}
-        <path d="M ${palmX-53} 234 Q ${palmX} 215 ${palmX+56} 234" fill="none" stroke="#b77c5c" stroke-width="3" opacity=".24"/>
-        </g>
-      </svg>
-    </div>`;
+    const strip=document.getElementById('handStrip');
+    if(strip) strip.outerHTML=handStrip(note);
   }
   function keyboard(){
     const birthday=activity?.type==='song'&&getSong(activity.id)?.keyboard==='birthday';
@@ -379,7 +368,7 @@
     const white=sequence.map(note=>`<button class="white-key${note===activity?.notes[activity.index]?' guide-target':''}" data-note="${note}" aria-label="Tocar ${prettyName(note)}"><span class="key-letter">${LETTER[note]}</span><span class="key-name">${note.replace('5','↑')}</span></button>`).join('');
     const blacks=(birthday?[1,2,4,5,7]:[1,2,4,5,6]).map(after=>`<span class="black-key" style="left:${after*12.5}%" aria-hidden="true"></span>`).join('');
     const letters=birthday?'G A B C D E F G':'C D E F G A B C';
-    return `<div class="keyboard-guide"><span>Letras del ordenador: C Do, D Re, E Mi, F Fa, G Sol, A La, B Si. La letra sigue la nota esperada; Mayús o 8 suben la octava.</span>${birthday?'<span> · Desde Sol4 hasta Sol5</span>':''}</div><div class="practice-keyboard" aria-label="Teclado de piano con letras ${letters}"><div class="white-keys">${white}</div>${blacks}${handOverlay(activity.notes[activity.index])}</div>`;
+    return `<div class="keyboard-guide"><span>Letras del ordenador: C Do, D Re, E Mi, F Fa, G Sol, A La, B Si. La letra sigue la nota esperada; Mayús o 8 suben la octava.</span>${birthday?'<span> · Desde Sol4 hasta Sol5</span>':''}</div><div class="practice-keyboard" aria-label="Teclado de piano con letras ${letters}"><div class="white-keys">${white}</div>${blacks}</div>`;
   }
   function scoreTimeline(){
     if(!activity)return '';
@@ -408,7 +397,7 @@
   }
   function listenPanel(){
     const live=!!micStream;
-    return `<div class="listen-panel" id="listenPanel"><div class="listen-row"><span class="listen-dot ${live?'live':''}" id="listenDot"></span><span id="listenState">${live?'Escuchando tu piano':'Micrófono en pausa'}</span><b class="heard-note" id="heardNote">—</b></div><div class="level-meter" aria-label="Nivel del micrófono"><span id="levelFill"></span></div></div>`;
+    return `<div class="listen-panel" id="listenPanel"><div class="listen-row"><span class="listen-dot ${live?'live':''}" id="listenDot"></span><span id="listenState">${live?'Escuchando tu piano':'Micrófono en pausa'}</span><b class="heard-note" id="heardNote">—</b></div><div class="level-meter" aria-label="Nivel del micrófono"><span id="levelFill"></span></div><small id="micDebugLine" ${state.micDebug?'':'hidden'}></small></div>`;
   }
   function handChooser(){
     const micAsk=micStream?'':`<button class="btn" data-mic-ask>🎤 ACTIVAR MICRÓFONO</button><p class="mic-note">Sin micrófono puedes usar la pantalla o las letras C D E F G A B.</p>`;
@@ -424,20 +413,21 @@
   function playPage(){
     if(!activity)return home();
     const target=activity.notes[activity.index],percent=Math.round(activity.index/activity.notes.length*100);
-    return `<div class="lesson-top"><button class="back-btn" id="leaveLesson" aria-label="Salir de la lección">‹</button><div style="flex:1"><div class="lesson-header"><div><h1>${clean(activity.title)}</h1><p>Nota ${activity.index+1} de ${activity.notes.length}</p></div><button id="handSettings" class="small-settings" aria-label="Cambiar mano">✋ ${activity.hand==='both'?'Ambas':activity.hand==='left'?'Izquierda':'Derecha'}</button></div>${progressBarActivity(percent)}</div></div>
+    const modeLabel=activity.hand==='both'?'Ambas':activity.hand==='left'?'Izquierda':'Derecha';
+    return `<div class="lesson-top"><button class="back-btn" id="leaveLesson" aria-label="Salir de la lección">‹</button><div style="flex:1"><div class="lesson-header"><div><h1>${clean(activity.title)}</h1><p>Nota ${activity.index+1} de ${activity.notes.length}</p></div><button id="handSettings" class="small-settings" aria-label="Cambiar mano">${modeLabel}</button></div>${progressBarActivity(percent)}</div></div>
     <section class="lesson-stage" id="lessonStage">
       <div class="target-display"><div class="note-label">TOCA ESTA NOTA</div><div class="target-note" id="targetNote">${prettyName(target)}</div></div>
+      ${handStrip(target)}
       <div class="staff" id="staffDrawing">${staffDrawing(target)}</div>
       <div class="lesson-feedback" id="lessonFeedback" role="status" aria-live="polite">🎹 Esperando una nota · toca o activa el micrófono</div>
       ${listenPanel()}
       ${keyboard()}
       ${scoreTimeline()}
       <p class="lesson-help">${activity.type==='lesson'?clean(getLesson(activity.id).tip):(getSong(activity.id).keyboard==='birthday'?'Cumpleaños feliz: toca las letras G, A, B, C, D, E y F en orden.':'Sigue las notas de la canción, una por una.')}</p>
-      ${fingerDiagram(target)}
     </section>
     <div class="lesson-controls"><button class="btn secondary" id="hearTarget">🔊 ESCUCHAR NOTA</button><button class="btn secondary" id="demoSequence">▶ ESCUCHAR FRAGMENTO</button><button class="btn ghost" id="toggleLoop" aria-pressed="${activity.loopEnabled}">⟳ ${activity.loopEnabled?'QUITAR BUCLE':'REPETIR 4 NOTAS'}</button>${micStream?'<button class="btn ghost" id="enableMic" disabled>🎤 ESCUCHANDO</button>':'<button class="btn ghost" data-mic-ask id="enableMic">🎤 ACTIVAR MICRÓFONO</button>'}<button class="btn ghost" data-nav="calibrate">PROBAR DO</button><button class="btn ghost" id="enableMidi">🎹 MIDI</button></div>
     <div class="source-status" id="sourceStatus">Teclado del ordenador: C D E F G A B. Si la nota esperada es aguda, esa letra la toca. Mayús+letra fuerza la octava 5 y 8 es Do agudo. La pantalla, el micrófono y MIDI también valen.</div>
-    ${activity.chooseHand?handChooser():''}`;
+    ${activity.chooseHand?handChooser():''}${activity.placeHands?placeHandsStep():''}`;
   }
   function progressBarActivity(percent){return `<div class="lesson-progress" aria-label="Progreso del ejercicio"><span id="activityBar" style="width:${percent}%"></span></div>`}
   function resultPage(){if(!activity)return home();const count=activity.notes.length,accuracy=Math.round(activity.correct/Math.max(1,activity.attempts)*100);const stars=accuracy>=95?3:accuracy>=75?2:1;const isLesson=activity.type==='lesson',data=isLesson?getLesson(activity.id):getSong(activity.id);
@@ -457,7 +447,7 @@
     if(next==='play' && activity){updateFingerGuide(activity.notes[activity.index]);updateScore();}
   }
   function playTone(note){
-    ignoreMicUntil=performance.now()+620;
+    ignoreMicUntil=performance.now()+750;
     if(micTracker) micTracker.reset();
     try {
       const Context=window.AudioContext||window.webkitAudioContext;
@@ -492,7 +482,7 @@
     const info=document.querySelector('.lesson-header p');if(info)info.textContent=`Nota ${activity.index+1} de ${activity.notes.length}`;
   }
   function handleNote(note,source='pantalla'){
-    if(route!=='play'||!activity||activity.finished||activity.waiting||activity.chooseHand)return;
+    if(route!=='play'||!activity||activity.finished||activity.waiting||activity.chooseHand||activity.placeHands)return;
     if(!(note in NOTES))return;
     const pressed=Array.from(document.querySelectorAll('.white-key')).find(el=>el.dataset.note===note);
     pressed?.classList.add('pressed');if(pressed)setTimeout(()=>pressed.classList.remove('pressed'),160);
@@ -619,7 +609,7 @@
     overlay.setAttribute('aria-hidden','false');
   }
   let listenStateSource='',listenNoteSource='';
-  function paintListen(level,note){
+  function paintListen(level,note,frequency,confidence){
     const fill=document.getElementById('levelFill');
     if(fill) fill.style.width=`${Math.max(0,Math.min(100,Math.round(level/0.2*100)))}%`;
     const dot=document.getElementById('listenDot');
@@ -628,8 +618,15 @@
     const nextState=micStream?'Escuchando tu piano':'Micrófono en pausa';
     if(stateNode&&listenStateSource!==nextState){listenStateSource=nextState;stateNode.textContent=nextState;}
     const heard=document.getElementById('heardNote');
-    const nextHeard=note?prettyName(note):'—';
+    const solfege=note?(note.endsWith('5')?note.replace('5',' agudo'):note):'';
+    const nextHeard=note?`${solfege} (${LETTER[note]})`:'—';
     if(heard&&listenNoteSource!==nextHeard){listenNoteSource=nextHeard;heard.textContent=nextHeard;}
+    if(heard) heard.classList.toggle('heard-ok',!!(note&&route==='play'&&activity&&note===activity.notes[activity.index]));
+    const debug=document.getElementById('micDebugLine');
+    if(debug){
+      debug.hidden=!state.micDebug;
+      if(state.micDebug) debug.textContent=frequency?`${frequency.toFixed(1)} Hz · ${Math.round((confidence||0)*100)}%`:'';
+    }
   }
   function markCalibrated(note){
     const node=document.getElementById('calibrateResult');
@@ -649,11 +646,14 @@
     micStream=stream;
     micSource=micContext.createMediaStreamSource(stream);
     micNode=micContext.createAnalyser();
-    micNode.fftSize=2048;
+    micNode.fftSize=micContext.sampleRate>48000?8192:4096;
     micNode.smoothingTimeConstant=0;
     micSource.connect(micNode);
     if(micContext.state==='suspended') micContext.resume();
-    micTracker=window.SonataPitch.createTracker(NOTES);
+    micTracker=window.SonataPitch.createTracker(NOTES,{
+      getTolerance:()=>state.centsTolerance||45,
+      getExpectedHz:()=>route==='play'&&activity&&!activity.chooseHand&&!activity.placeHands?NOTES[activity.notes[activity.index]]||null:null
+    });
     const buffer=new Float32Array(micNode.fftSize);
     let frameSkip=0;
     const listen=()=>{
@@ -662,10 +662,10 @@
       frameSkip=(frameSkip+1)%2;
       if(frameSkip) return;
       micNode.getFloatTimeDomainData(buffer);
-      if(performance.now()<ignoreMicUntil){micTracker.reset();paintListen(window.SonataPitch.rms(buffer),null);return;}
-      if(route!=='play'&&route!=='calibrate'){paintListen(window.SonataPitch.rms(buffer),null);return;}
+      if(performance.now()<ignoreMicUntil){micTracker.reset();paintListen(window.SonataPitch.rms(buffer),null,null,null);return;}
+      if(route!=='play'&&route!=='calibrate'){paintListen(window.SonataPitch.rms(buffer),null,null,null);return;}
       const frame=micTracker.push(buffer,micContext.sampleRate);
-      paintListen(frame.level,frame.note);
+      paintListen(frame.level,frame.note,frame.frequency,frame.confidence);
       if(!frame.emit) return;
       if(route==='calibrate'&&(frame.emit==='Do'||frame.emit==='Do5')) markCalibrated(frame.emit);
       else if(route==='play') handleNote(frame.emit,'micrófono');
@@ -732,8 +732,9 @@
     if(e.target.closest('#leaveLesson')){navigate(activity?.type==='song'?'songs':'path');return}
     if(e.target.closest('#hearTarget')&&activity){playTone(activity.notes[activity.index]);return}
     if(e.target.closest('#enableMidi')){enableMIDI();return}
-    const hand=e.target.closest('[data-hand]');if(hand&&activity){activity.hand=hand.dataset.hand;activity.chooseHand=false;if(state.micChoice==='granted'&&!micStream) requestMic();navigate('play');return}
-    if(e.target.closest('#handSettings')&&activity){activity.chooseHand=true;navigate('play');return}
+    const hand=e.target.closest('[data-hand]');if(hand&&activity){activity.hand=hand.dataset.hand;activity.chooseHand=false;activity.placeHands=true;if(state.micChoice==='granted'&&!micStream) requestMic();navigate('play');return}
+    if(e.target.closest('#handsReady')&&activity){activity.placeHands=false;navigate('play');return}
+    if(e.target.closest('#handSettings')&&activity){activity.chooseHand=true;activity.placeHands=false;navigate('play');return}
     if(e.target.closest('#toggleLoop')&&activity){
       activity.loopEnabled=!activity.loopEnabled;
       if(activity.loopEnabled){activity.loopStart=activity.index;activity.loopEnd=Math.min(activity.notes.length,activity.index+4)}
@@ -744,7 +745,7 @@
     if(e.target.closest('#demoSequence')&&activity){
       clearTimeout(demoTimer);
       const segment=activity.notes.slice(activity.index,activity.index+4);
-      ignoreMicUntil=performance.now()+segment.length*560+240;
+      ignoreMicUntil=performance.now()+(segment.length-1)*560+750;
       if(micTracker) micTracker.reset();
       segment.forEach((n,i)=>{demoTimer=setTimeout(()=>playTone(n),i*560)});
       return;
@@ -752,7 +753,19 @@
     if(e.target.closest('#dismissPrize')){dismissPrize();return}
     if(e.target.closest('#retryActivity')&&activity){startActivity(activity.type,activity.id);return}
     if(e.target.closest('#fakeCheckout')){toast('Todavía no se realizan pagos en el MVP.');return}
-    if(e.target.closest('#resetProgress')){const ask='¿Quieres borrar todo el progreso guardado en este dispositivo?';if(confirm(window.SonataI18n?window.SonataI18n.translate(ask):ask)){const remembered=state.micChoice;state=defaultState();state.micChoice=remembered;save();navigate('home');toast('Progreso de prueba borrado.')}return}
+    if(e.target.closest('#resetProgress')){const ask='¿Quieres borrar todo el progreso guardado en este dispositivo?';if(confirm(window.SonataI18n?window.SonataI18n.translate(ask):ask)){const remembered=state.micChoice,cents=state.centsTolerance,debug=state.micDebug;state=defaultState();state.micChoice=remembered;state.centsTolerance=cents;state.micDebug=debug;save();navigate('home');toast('Progreso de prueba borrado.')}return}
+  });
+  document.addEventListener('input',e=>{
+    if(e.target.id!=='centsTolerance') return;
+    state.centsTolerance=Math.min(80,Math.max(20,Number(e.target.value)||45));
+    const read=document.getElementById('centsRead');
+    if(read) read.textContent=String(state.centsTolerance);
+    save();
+  });
+  document.addEventListener('change',e=>{
+    if(e.target.id!=='micDebug') return;
+    state.micDebug=!!e.target.checked;
+    save();
   });
   document.addEventListener('submit',e=>{
     if(e.target.id==='emailForm'){e.preventDefault();state.email=normalize(document.getElementById('emailInput').value);save();navigate('profile');toast('Correo de prueba guardado en este dispositivo.');return}
