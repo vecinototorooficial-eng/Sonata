@@ -153,7 +153,7 @@
     if(missionIsClaimed(m)){toast('Esta recompensa ya está reclamada.');return}
     if(missionCount(m)<m.goal){toast('Completa la misión antes de reclamar el premio.');return}
     state.claimedMissions[missionClaimKey(m)]=true;
-    state.coins+=m.reward;save();navigate('missions');toast(`¡Misión completada! +${m.reward} monedas 🪙`);
+    state.coins+=m.reward;save();navigate('missions');toast(`¡Misión completada! +${m.reward} monedas`,true);
   }
   function missionCard(m){
     const count=Math.min(m.goal,missionCount(m)),claimed=missionIsClaimed(m),ready=count>=m.goal;
@@ -162,14 +162,14 @@
       <div class="mission-body"><h3>${clean(m.name)}</h3><p>${clean(m.detail)}</p>
       <div class="mission-progress" role="progressbar" aria-label="Progreso de ${clean(m.name)}" aria-valuemin="0" aria-valuemax="${m.goal}" aria-valuenow="${count}"><span style="width:${Math.round(count/m.goal*100)}%"></span></div>
       <small>${count} de ${m.goal}</small></div>
-      <div class="mission-prize"><b>🪙 ${m.reward}</b><button class="btn ${claimed?'secondary':''}" data-claim-mission="${m.id}" ${(!ready||claimed)?'disabled':''}>${claimed?'✓ RECLAMADA':ready?'RECLAMAR':'EN CURSO'}</button></div>
+      <div class="mission-prize"><b class="coin-price">${coinIcon(16)}<span>${m.reward}</span></b><button class="btn ${claimed?'secondary':''}" data-claim-mission="${m.id}" ${(!ready||claimed)?'disabled':''}>${claimed?'✓ RECLAMADA':ready?'RECLAMAR':'EN CURSO'}</button></div>
     </article>`;
   }
   function missions(){
     const today=dailyKey(),monday=weekKey();
     const doneToday=state.practiceDays.includes(today);
     const ready=MISSIONS.filter(m=>missionCount(m)>=m.goal&&!missionIsClaimed(m)).length;
-    return `${heading('Misiones musicales','Practica cada día y consigue monedas para tus skins.',`🪙 ${state.coins} MONEDAS`)}
+    return `${heading('Misiones musicales','Practica cada día y consigue monedas para tus skins.',coinPill())}
       <div class="mission-banner"><div><div class="eyebrow">TU OBJETIVO DE HOY</div><h2>${doneToday?'¡Ya has practicado hoy! 🎉':'¡Empieza tu práctica! 🎹'}</h2><p>Las misiones avanzan al terminar una lección o canción. No necesitas acertar todo a la primera.</p></div><div class="mission-flame">🔥<b>${state.streak}</b><small>racha</small></div></div>
       ${ready?`<div class="mission-ready-notice">🎉 ¡Tienes ${ready} ${ready===1?'premio listo':'premios listos'} para reclamar!</div>`:''}
       <div class="mission-section-title"><h2>☀️ Misiones diarias</h2><small>Reinician cada día · ${today}</small></div>
@@ -180,14 +180,35 @@
       <button class="btn" data-nav="path">IR A PRACTICAR →</button>`;
   }
 
+  let coinSerial=0;
+  function coinIcon(size){
+    const px=Number(size)||18;
+    const id='sc'+(++coinSerial);
+    return `<svg class="gold-coin" width="${px}" height="${px}" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><defs><radialGradient id="${id}f" cx="36%" cy="30%" r="72%"><stop offset="0" stop-color="#FFE27A"/><stop offset=".58" stop-color="#F5B800"/><stop offset="1" stop-color="#B8860B"/></radialGradient><linearGradient id="${id}e" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF3C4"/><stop offset=".45" stop-color="#F5B800"/><stop offset="1" stop-color="#8C6210"/></linearGradient><g id="${id}n"><ellipse cx="12.6" cy="20.5" rx="4.5" ry="3.05" transform="rotate(-28 12.6 20.5)"/><rect x="15.55" y="8.7" width="2.7" height="12.2" rx=".5"/><path d="M18.15 8.75c3.1-.35 5.55 1.15 5.7 3.15.12 1.35-.85 2.35-2.15 2.15-1.85-.28-3.15-1.7-3.45-3.15-.08-.4-.1-.85-.1-1.25V8.9c0-.05 0-.1 0-.15z"/></g></defs><ellipse cx="16" cy="18.4" rx="12.2" ry="3.1" fill="#6A4A08" opacity=".35"/><circle cx="16" cy="16" r="14" fill="url(#${id}e)"/><circle cx="16" cy="16" r="11.6" fill="url(#${id}f)" stroke="#8A620C" stroke-width=".9"/><circle cx="16" cy="16" r="9.5" fill="none" stroke="#FFE7A6" stroke-width=".75" opacity=".9"/><circle cx="16" cy="16" r="8.7" fill="none" stroke="#A06C10" stroke-width=".45"/><ellipse cx="11.2" cy="11" rx="4.6" ry="2.6" fill="#fff" opacity=".42"/><use href="#${id}n" xlink:href="#${id}n" fill="#FFF4C8" x="-0.6" y="-0.7"/><use href="#${id}n" xlink:href="#${id}n" fill="#8B6508"/></svg>`;
+  }
   function save(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state))}catch(e){console.warn('No se pudo guardar progreso',e)}syncHeader()}
   function syncHeader(){
     document.getElementById('topXP').textContent=state.xp;
+    const coinValue=document.getElementById('topCoinsValue');
+    if(coinValue) coinValue.textContent=String(state.coins);
+    const coinLabel=document.getElementById('topCoinsLabel');
+    const coinLabelText=`${state.coins} monedas`;
+    if(coinLabel&&coinLabel.dataset.source!==coinLabelText){coinLabel.dataset.source=coinLabelText;coinLabel.textContent=coinLabelText;}
+    const coinSlot=document.getElementById('topCoinSlot');
+    if(coinSlot&&!coinSlot.querySelector('svg')) coinSlot.innerHTML=coinIcon(18);
     const earned=ACHIEVEMENTS.find(a=>a.id===state.equippedBadge && a.earned());
     document.querySelector('.top-avatar').innerHTML=`<span>${clean((state.email[0]||'P').toUpperCase())}</span>${earned?`<span class="avatar-badge" aria-hidden="true">${earned.icon}</span>`:''}`;
     document.documentElement.dataset.skin=state.equippedSkin||'classic';
   }
-  function toast(message){const node=document.getElementById('toast');node.textContent=message;node.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>node.classList.remove('show'),2500)}
+  function coinPill(){return `${coinIcon(16)}<span>${state.coins} MONEDAS</span>`}
+  function toast(message,withCoin){
+    const node=document.getElementById('toast');
+    if(withCoin) node.innerHTML=`${coinIcon(16)}<span>${message}</span>`;
+    else node.textContent=message;
+    node.classList.add('show');
+    clearTimeout(toastTimeout);
+    toastTimeout=setTimeout(()=>node.classList.remove('show'),2500);
+  }
   function progressBar(){return `<div class="lesson-progress" aria-label="Progreso del curso"><span style="width:${completedCount()/LESSONS.length*100}%"></span></div>`}
   function heading(title,subtitle='',pill=''){return `<header class="page-head"><div><h1>${title}</h1><p>${subtitle}</p></div>${pill?`<span class="pill">${pill}</span>`:''}</header>`}
   function section(title,action='',target=''){return `<div class="section-heading"><h2>${title}</h2>${action?`<button class="text-action" data-nav="${target}"><span>${action}</span><span aria-hidden="true"> ›</span></button>`:''}</div>`}
@@ -226,12 +247,12 @@
     return `<svg viewBox="0 0 130 116" width="115" height="100" role="img" aria-label="Cofre ${c.name}"><defs><linearGradient id="${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${light}"/><stop offset="1" stop-color="${mid}"/></linearGradient></defs><ellipse cx="65" cy="104" rx="47" ry="8" fill="#3c5560" opacity=".13"/><path d="M22 48 L34 18 Q65 4 96 18 L108 48 Z" fill="url(#${uid})" stroke="${dark}" stroke-width="5" stroke-linejoin="round"/><path d="M21 50 H109 V91 Q109 99 101 99 H29 Q21 99 21 91 Z" fill="url(#${uid})" stroke="${dark}" stroke-width="5"/><path d="M32 21 L38 47 M98 21 L92 47" stroke="${dark}" stroke-width="9" opacity=".73"/><path d="M36 53 V94 M94 53 V94" stroke="${dark}" stroke-width="10" opacity=".7"/><path d="M22 52 H108" stroke="#fff" stroke-width="5" opacity=".65"/><rect x="54" y="45" width="22" height="24" rx="5" fill="#fff1b7" stroke="${dark}" stroke-width="3"/><circle cx="65" cy="56" r="4" fill="${dark}"/><path d="M10 23 l4 -9 4 9 9 4 -9 4 -4 9 -4 -9 -9 -4z" fill="${light}"/><path d="M110 12 l3 -6 3 6 6 3 -6 3 -3 6 -3 -6 -6 -3z" fill="${mid}"/></svg>`;
   }
   function chestCard(c){const opened=state.chests[c.id],unlocked=completedCount()>=c.requires;
-    return `<article class="chest-card ${c.id}"><div class="chest-rarity">${clean(c.name)}</div><div class="chest-visual">${opened?'🏆':chestSvg(c)}</div><h3>Cofre ${clean(c.name.toLowerCase())}</h3><p>${clean(c.desc)}</p><div class="meta">${opened?`Conseguiste ${opened.xp} XP y ${opened.coins} monedas`:`Se desbloquea al completar ${c.requires} ${c.requires===1?'lección':'lecciones'}`}</div><button class="btn" data-chest="${c.id}" ${(!unlocked||opened)?'disabled':''}>${opened?'✓ ABIERTO':unlocked?'ABRIR COFRE':'🔒 AÚN BLOQUEADO'}</button></article>`}
-  function rewards(){return `${heading('Tus cofres','Cuanto más aprendes, mejores recompensas consigues.',`🪙 ${state.coins} MONEDAS`)}<div class="path-intro"><div><div class="eyebrow">RECOMPENSAS SONATA</div><h2>¡Toca, aprende y descubre!</h2><p>Hay cinco rarezas. Los cofres se abren una sola vez en este MVP y los premios se guardan en tu dispositivo.</p></div><span class="big-note">🎁</span></div><button class="btn secondary" data-nav="missions" style="margin:0 0 14px">🎯 VER MISIONES Y GANAR MONEDAS</button>${section('Colección de cofres')}<div class="chest-grid">${CHESTS.map(chestCard).join('')}</div><p class="footer-note">Los cofres no contienen compras, dinero real ni acceso Premium.</p>`}
+    return `<article class="chest-card ${c.id}"><div class="chest-rarity">${clean(c.name)}</div><div class="chest-visual">${opened?'🏆':chestSvg(c)}</div><h3>Cofre ${clean(c.name.toLowerCase())}</h3><p>${clean(c.desc)}</p><div class="meta">${opened?`<span>Conseguiste ${opened.xp} XP y ${opened.coins} monedas</span> ${coinIcon(14)}`:`Se desbloquea al completar ${c.requires} ${c.requires===1?'lección':'lecciones'}`}</div><button class="btn" data-chest="${c.id}" ${(!unlocked||opened)?'disabled':''}>${opened?'✓ ABIERTO':unlocked?'ABRIR COFRE':'🔒 AÚN BLOQUEADO'}</button></article>`}
+  function rewards(){return `${heading('Tus cofres','Cuanto más aprendes, mejores recompensas consigues.',coinPill())}<div class="path-intro"><div><div class="eyebrow">RECOMPENSAS SONATA</div><h2>¡Toca, aprende y descubre!</h2><p>Hay cinco rarezas. Los cofres se abren una sola vez en este MVP y los premios se guardan en tu dispositivo.</p></div><span class="big-note">🎁</span></div><button class="btn secondary" data-nav="missions" style="margin:0 0 14px">🎯 VER MISIONES Y GANAR MONEDAS</button>${section('Colección de cofres')}<div class="chest-grid">${CHESTS.map(chestCard).join('')}</div><p class="footer-note">Los cofres no contienen compras, dinero real ni acceso Premium.</p>`}
   function skinPreview(skin){return `<div class="skin-preview ${skin.id}" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><i></i><i></i><i></i></div>`}
-  function shop(){return `${heading('Tienda de Sonata','Compra aspectos con monedas ganadas jugando.',`🪙 ${state.coins} MONEDAS`)}
+  function shop(){return `${heading('Tienda de Sonata','Compra aspectos con monedas ganadas jugando.',coinPill())}
     <div class="path-intro"><div><div class="eyebrow">PERSONALIZA TU PIANO</div><h2>¡Dale estilo a tu música!</h2><p>Las skins cambian el aspecto del teclado de práctica. No afectan a los aciertos ni desbloquean contenido Premium. Gana 40 monedas por el primer ejercicio completado de cada día.</p></div><span class="big-note">🛍️</span></div>
-    <div class="skin-grid">${SKINS.map(s=>{const owned=state.ownedSkins.includes(s.id),equipped=state.equippedSkin===s.id,daysNeeded=s.days||0,daysLeft=Math.max(0,daysNeeded-practiceDayCount()),canBuy=state.coins>=s.price&&daysLeft===0;return `<article class="skin-card"><div class="skin-title"><span>${s.emoji}</span><b>${clean(s.name)}</b></div>${skinPreview(s)}<p>${clean(s.desc)}</p><p class="skin-requirement">${!owned&&daysLeft?`🔒 Faltan ${daysLeft} días de práctica`:owned?'✓ Ya es tuya':`Disponible desde ${daysNeeded} días de práctica`}</p><button class="btn ${equipped?'secondary':''}" data-skin-action="${s.id}" ${(!owned&&!canBuy)?'disabled':''}>${equipped?'✓ EQUIPADA':owned?'EQUIPAR':daysLeft?`🪙 ${s.price} · ${daysNeeded} DÍAS`:`🪙 ${s.price} · COMPRAR`}</button></article>`}).join('')}</div>
+    <div class="skin-grid">${SKINS.map(s=>{const owned=state.ownedSkins.includes(s.id),equipped=state.equippedSkin===s.id,daysNeeded=s.days||0,daysLeft=Math.max(0,daysNeeded-practiceDayCount()),canBuy=state.coins>=s.price&&daysLeft===0;return `<article class="skin-card"><div class="skin-title"><span>${s.emoji}</span><b>${clean(s.name)}</b></div>${skinPreview(s)}<p>${clean(s.desc)}</p><p class="skin-requirement">${!owned&&daysLeft?`🔒 Faltan ${daysLeft} días de práctica`:owned?'✓ Ya es tuya':`Disponible desde ${daysNeeded} días de práctica`}</p><button class="btn ${equipped?'secondary':''}" data-skin-action="${s.id}" ${(!owned&&!canBuy)?'disabled':''}>${equipped?'✓ EQUIPADA':owned?'EQUIPAR':`${coinIcon(14)}<span>${daysLeft?`${s.price} · ${daysNeeded} DÍAS`:`${s.price} · COMPRAR`}</span>`}</button></article>`}).join('')}</div>
     ${section('Insignias de logros')}<p class="achievement-intro">Desbloquea medallas por aprender. Elige una insignia conseguida para mostrarla en tu avatar.</p>${achievementCards()}
     <p class="footer-note">Las monedas son ficticias, no se compran con dinero real y los objetos se guardan en este dispositivo.</p>`}
   function achievementCards(){
@@ -245,7 +266,7 @@
       }).join('')}</div>`;
   }
   function profile(){return `${heading('Tu perfil','Tu progreso y los ajustes de Sonata.')}<div class="profile-card"><h2>👤 Tu cuenta (modo prueba)</h2><p>Escribe un correo para simular una cuenta. No se envía ningún mensaje ni se verifica la propiedad de la dirección: todavía no hay inicio de sesión real. El correo no desbloquea lecciones ni canciones.</p><form id="emailForm" class="field-row"><input type="email" id="emailInput" required autocomplete="email" placeholder="tu@email.com" value="${clean(state.email)}" aria-label="Correo de cuenta"><button class="btn" type="submit">GUARDAR</button></form><span class="badge">Plan principiante · Gratis</span></div>
-      <div class="profile-card"><h2>📊 Tus estadísticas</h2><p><strong>${completedCount()}</strong> <span>lecciones completas</span> · <strong>${state.xp}</strong> XP · <strong>${state.coins}</strong> <span>monedas</span> · <strong>${Object.keys(state.chests).length}</strong> <span>cofres abiertos</span></p><button class="btn secondary" data-nav="path">VER CAMINO MUSICAL</button> <button class="btn secondary" data-nav="shop">🛍️ TIENDA DE SKINS</button> <button class="btn secondary" data-nav="missions">🎯 Misiones</button></div>
+      <div class="profile-card"><h2>📊 Tus estadísticas</h2><p><strong>${completedCount()}</strong> <span>lecciones completas</span> · <strong>${state.xp}</strong> XP · <strong>${state.coins}</strong> ${coinIcon(14)} <span>monedas</span> · <strong>${Object.keys(state.chests).length}</strong> <span>cofres abiertos</span></p><button class="btn secondary" data-nav="path">VER CAMINO MUSICAL</button> <button class="btn secondary" data-nav="shop">🛍️ TIENDA DE SKINS</button> <button class="btn secondary" data-nav="missions">🎯 Misiones</button></div>
       <div class="profile-card"><h2>🏅 Tus insignias</h2><p>Elige una insignia ganada para lucirla en tu perfil.</p>${achievementCards()}</div>
       <div class="profile-card"><h2>⚙️ Pruebas</h2><p>Se guardan tus datos con el almacenamiento de este navegador. Si borras los datos del sitio, se perderá el progreso.</p><button class="btn ghost" id="resetProgress">BORRAR PROGRESO DE PRUEBA</button></div>
       <p class="footer-note">MVP de evaluación. Sin cuentas verificadas, pagos operativos ni sincronización entre dispositivos.</p>`}
@@ -420,7 +441,7 @@
   }
   function progressBarActivity(percent){return `<div class="lesson-progress" aria-label="Progreso del ejercicio"><span id="activityBar" style="width:${percent}%"></span></div>`}
   function resultPage(){if(!activity)return home();const count=activity.notes.length,accuracy=Math.round(activity.correct/Math.max(1,activity.attempts)*100);const stars=accuracy>=95?3:accuracy>=75?2:1;const isLesson=activity.type==='lesson',data=isLesson?getLesson(activity.id):getSong(activity.id);
-    return `<div class="result"><div class="result-burst">🎉</div><h1>¡${isLesson?'Lección':'Canción'} completada!</h1><p>¡Has llegado hasta la última nota!</p><div class="stars" aria-label="${stars} ${stars===1?'estrella':'estrellas'}">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</div><div class="result-stats"><div><strong>${accuracy}%</strong><small>Precisión</small></div><div><strong>${count}</strong><small>Notas correctas</small></div><div><strong>+${activity.awardedXP||0}</strong><small>XP nuevos</small></div></div><p>${activity.awardedCoins?`<span>🪙 +${activity.awardedCoins} monedas por practicar hoy.</span> `:''}<span>${activity.newChest?'🎁 ¡Has desbloqueado un cofre! Ve a Recompensas para abrirlo.':'Mejora tus estrellas repitiendo la actividad.'}</span></p><div class="actions"><button class="btn secondary" id="retryActivity">REPETIR</button><button class="btn" data-nav="${isLesson?'path':'songs'}">CONTINUAR →</button>${activity.newChest?'<button class="btn gold" data-nav="rewards">VER COFRES</button>':''}</div></div>`}
+    return `<div class="result"><div class="result-burst">🎉</div><h1>¡${isLesson?'Lección':'Canción'} completada!</h1><p>¡Has llegado hasta la última nota!</p><div class="stars" aria-label="${stars} ${stars===1?'estrella':'estrellas'}">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</div><div class="result-stats"><div><strong>${accuracy}%</strong><small>Precisión</small></div><div><strong>${count}</strong><small>Notas correctas</small></div><div><strong>+${activity.awardedXP||0}</strong><small>XP nuevos</small></div></div><p>${activity.awardedCoins?`<span class="coin-price">${coinIcon(16)}<span>+${activity.awardedCoins} monedas por practicar hoy.</span></span> `:''}<span>${activity.newChest?'🎁 ¡Has desbloqueado un cofre! Ve a Recompensas para abrirlo.':'Mejora tus estrellas repitiendo la actividad.'}</span></p><div class="actions"><button class="btn secondary" id="retryActivity">REPETIR</button><button class="btn" data-nav="${isLesson?'path':'songs'}">CONTINUAR →</button>${activity.newChest?'<button class="btn gold" data-nav="rewards">VER COFRES</button>':''}</div></div>`}
   function calibratePage(){
     return `${heading('Prueba el micrófono','Toca un Do para confirmar que te oímos.')}<section class="calibrate-card"><div class="note-label">TOCA ESTA NOTA</div><div class="target-note">C · Do</div><p>Toca el Do central o el Do agudo en tu piano, con una nota clara. Si el micrófono falla, las lecciones siguen en la pantalla y con las letras del ordenador.</p>${listenPanel()}${micStream?'':`<button class="btn" data-mic-ask>🎤 ACTIVAR MICRÓFONO</button>`}<p id="calibrateResult">Aún no oímos un Do.</p><button class="btn" id="calibrateDone" disabled>EMPEZAR A PRACTICAR</button><button class="btn ghost" data-nav="home">Volver al inicio</button></section>`;
   }
@@ -524,7 +545,7 @@
     const randomBetween=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
     const xp=randomBetween(...c.xp),coins=randomBetween(...c.coins);
     state.chests[id]={xp,coins};state.xp+=xp;state.coins+=coins;save();navigate('rewards');
-    const overlay=document.getElementById('rewardOverlay');overlay.innerHTML=`<div class="prize" role="dialog" aria-modal="true" aria-label="Recompensa"><span class="chest-icon">${chestSvg(c,"-prize")}</span><div class="eyebrow">COFRE ${clean(c.name.toUpperCase())}</div><h2>¡Qué recompensa!</h2><div class="big-reward">+${xp} XP · +${coins} 🪙</div><p>¡Sigue aprendiendo para desbloquear el siguiente cofre!</p><button class="btn" id="dismissPrize">¡GENIAL!</button></div>`;overlay.classList.add('show');overlay.setAttribute('aria-hidden','false');document.getElementById('dismissPrize').focus();
+    const overlay=document.getElementById('rewardOverlay');overlay.innerHTML=`<div class="prize" role="dialog" aria-modal="true" aria-label="Recompensa"><span class="chest-icon">${chestSvg(c,"-prize")}</span><div class="eyebrow">COFRE ${clean(c.name.toUpperCase())}</div><h2>¡Qué recompensa!</h2><div class="big-reward">+${xp} XP · +${coins} ${coinIcon(28)}</div><p>¡Sigue aprendiendo para desbloquear el siguiente cofre!</p><button class="btn" id="dismissPrize">¡GENIAL!</button></div>`;overlay.classList.add('show');overlay.setAttribute('aria-hidden','false');document.getElementById('dismissPrize').focus();
   }
   function dismissPrize(){const ov=document.getElementById('rewardOverlay');ov.classList.remove('show');ov.setAttribute('aria-hidden','true');ov.innerHTML=''}
   function stopInputs(){
