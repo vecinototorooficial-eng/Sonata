@@ -404,9 +404,9 @@
     [new RegExp("^Conseguiste (\\d+) XP y (\\d+) monedas$"),"You earned $1 XP and $2 coins"],
     [new RegExp("^🔒 Faltan (\\d+) días de práctica$"),"🔒 $1 more practice days needed"],
     [new RegExp("^Disponible desde (\\d+) días de práctica$"),"Available after $1 practice days"],
-    [new RegExp("^🪙 (\\d+) · (\\d+) DÍAS$"),"🪙 $1 · $2 DAYS"],
-    [new RegExp("^🪙 (\\d+) · COMPRAR$"),"🪙 $1 · BUY"],
-    [new RegExp("^🪙 (\\d+) MONEDAS$"),"🪙 $1 COINS"],
+    [new RegExp("^(\\d+) · (\\d+) DÍAS$"),"$1 · $2 DAYS"],
+    [new RegExp("^(\\d+) · COMPRAR$"),"$1 · BUY"],
+    [new RegExp("^(\\d+) MONEDAS$"),"$1 COINS"],
     [new RegExp("^Lección (\\d+) de (\\d+)$"),"Lesson $1 of $2"],
     [new RegExp("^✅ (.+)$"),"✅ $1"],
     [new RegExp("^🎹 Esperando una nota.*$"),"🎹 Waiting for a note · play a key or enable microphone"],
@@ -432,9 +432,9 @@
     [new RegExp("^(\\d+) CANCIONES$"),"$1 SONGS"],
     [new RegExp("^(\\d+) día$"),"$1 day"],
     [new RegExp("^(\\d+) días$"),"$1 days"],
-    [new RegExp("^🎯 ¡Misión completada! \\+(\\d+) monedas 🪙$"),"🎯 Mission complete! +$1 coins 🪙"],
-    [new RegExp("^¡Misión completada! \\+(\\d+) monedas 🪙$"),"Mission complete! +$1 coins 🪙"],
-    [new RegExp("^🪙 \\+(\\d+) monedas por practicar hoy\\.$"),"🪙 +$1 coins for today’s practice."]
+    [new RegExp("^🎯 ¡Misión completada! \\+(\\d+) monedas$"),"🎯 Mission complete! +$1 coins"],
+    [new RegExp("^¡Misión completada! \\+(\\d+) monedas$"),"Mission complete! +$1 coins"],
+    [new RegExp("^\\+(\\d+) monedas por practicar hoy\\.$"),"+$1 coins for today’s practice."]
   ];
   const originalNodes=new WeakMap(), originalAttrs=new WeakMap();
   let language=localStorage.getItem(STORAGE)==='es'?'es':'en';
