@@ -191,6 +191,9 @@
     document.getElementById('topXP').textContent=state.xp;
     const coinValue=document.getElementById('topCoinsValue');
     if(coinValue) coinValue.textContent=String(state.coins);
+    const coinLabel=document.getElementById('topCoinsLabel');
+    const coinLabelText=`${state.coins} monedas`;
+    if(coinLabel&&coinLabel.dataset.source!==coinLabelText){coinLabel.dataset.source=coinLabelText;coinLabel.textContent=coinLabelText;}
     const coinSlot=document.getElementById('topCoinSlot');
     if(coinSlot&&!coinSlot.querySelector('svg')) coinSlot.innerHTML=coinIcon(18);
     const earned=ACHIEVEMENTS.find(a=>a.id===state.equippedBadge && a.earned());

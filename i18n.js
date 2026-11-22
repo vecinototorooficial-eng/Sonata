@@ -407,6 +407,7 @@
     [new RegExp("^(\\d+) · (\\d+) DÍAS$"),"$1 · $2 DAYS"],
     [new RegExp("^(\\d+) · COMPRAR$"),"$1 · BUY"],
     [new RegExp("^(\\d+) MONEDAS$"),"$1 COINS"],
+    [new RegExp("^(\\d+) monedas$"),"$1 coins"],
     [new RegExp("^Lección (\\d+) de (\\d+)$"),"Lesson $1 of $2"],
     [new RegExp("^✅ (.+)$"),"✅ $1"],
     [new RegExp("^🎹 Esperando una nota.*$"),"🎹 Waiting for a note · play a key or enable microphone"],
